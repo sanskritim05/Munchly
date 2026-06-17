@@ -64,23 +64,9 @@ export async function POST(request: Request) {
 
   await recalculateUserAverage(plate.user_id);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_ratings_count")
-    .eq("id", user.id)
-    .single();
-
-  const onboardingRatingsCount = (profile?.onboarding_ratings_count ?? 0) + 1;
-
-  await supabase
-    .from("profiles")
-    .update({ onboarding_ratings_count: onboardingRatingsCount })
-    .eq("id", user.id);
-
   return NextResponse.json({
     new_score,
     hot_count,
     not_count,
-    onboarding_ratings_count: onboardingRatingsCount,
   });
 }

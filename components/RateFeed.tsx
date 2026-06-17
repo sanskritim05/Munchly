@@ -17,10 +17,6 @@ import { ScoreBadge } from "@/components/ScoreBadge";
 import { getStreak, recordRating } from "@/lib/streak";
 import { track } from "@/lib/analytics";
 import { FEED_VIEWPORT_HEIGHT } from "@/lib/feed-scope";
-import {
-  incrementLocalRatingsCount,
-  setLocalRatingsCount,
-} from "@/lib/onboarding-ratings";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
@@ -179,7 +175,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     const token = getAccessToken();
     if (!token) return;
 
-    const res = await fetch("/api/rate", {
+    await fetch("/api/rate", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -187,13 +183,6 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
       },
       body: JSON.stringify({ plate_id: plateId, rating }),
     });
-
-    const data = await res.json().catch(() => ({}));
-    if (typeof data.onboarding_ratings_count === "number") {
-      setLocalRatingsCount(data.onboarding_ratings_count);
-    } else {
-      incrementLocalRatingsCount();
-    }
 
     const previousStreak = getStreak().count;
     const s = recordRating();
