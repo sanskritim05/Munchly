@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { RestaurantAutocomplete } from "@/components/RestaurantAutocomplete";
 
 export function PlateEditForm({
@@ -18,6 +18,22 @@ export function PlateEditForm({
   const [restaurant, setRestaurant] = useState(restaurantName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { maximumAge: 600_000, timeout: 8000 }
+    );
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,7 +69,12 @@ export function PlateEditForm({
       </div>
       <div>
         <label className="mb-1 block text-sm text-gray-400">Restaurant</label>
-        <RestaurantAutocomplete value={restaurant} onChange={setRestaurant} disabled={saving} />
+        <RestaurantAutocomplete
+          value={restaurant}
+          onChange={setRestaurant}
+          disabled={saving}
+          location={location}
+        />
       </div>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
       <div className="flex gap-2">

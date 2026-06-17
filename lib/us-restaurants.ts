@@ -134,8 +134,45 @@ const US_RESTAURANTS = [
   "Zoe's Kitchen",
 ];
 
+const POPULAR_RESTAURANTS = [
+  "Chipotle",
+  "McDonald's",
+  "Starbucks",
+  "Chick-fil-A",
+  "Olive Garden",
+  "Panera Bread",
+  "Taco Bell",
+  "The Cheesecake Factory",
+  "In-N-Out Burger",
+  "Shake Shack",
+];
+
 export function getUSRestaurants(): string[] {
   return US_RESTAURANTS;
+}
+
+export function getPopularRestaurants(limit = 8): string[] {
+  return POPULAR_RESTAURANTS.slice(0, limit);
+}
+
+export function mergeRestaurantSuggestions(
+  ...lists: string[][]
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const list of lists) {
+    for (const name of list) {
+      const trimmed = name.trim();
+      if (!trimmed) continue;
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(trimmed);
+    }
+  }
+
+  return result;
 }
 
 export function searchUSRestaurants(query: string, limit = 8): string[] {
@@ -144,14 +181,14 @@ export function searchUSRestaurants(query: string, limit = 8): string[] {
 
   const matches = US_RESTAURANTS.filter((name) => name.toLowerCase().includes(q));
 
-  matches.sort((a, b) => {
-    const al = a.toLowerCase();
-    const bl = b.toLowerCase();
-    const aStarts = al.startsWith(q) ? 0 : al.split(" ").some((w) => w.startsWith(q)) ? 1 : 2;
-    const bStarts = bl.startsWith(q) ? 0 : bl.split(" ").some((w) => w.startsWith(q)) ? 1 : 2;
-    if (aStarts !== bStarts) return aStarts - bStarts;
-    return a.localeCompare(b);
-  });
+  matches.sort((a, b) => rankMatch(a, q) - rankMatch(b, q) || a.localeCompare(b));
 
   return matches.slice(0, limit);
+}
+
+function rankMatch(name: string, q: string) {
+  const lower = name.toLowerCase();
+  if (lower.startsWith(q)) return 0;
+  if (lower.split(/\s+/).some((word) => word.startsWith(q))) return 1;
+  return 2;
 }

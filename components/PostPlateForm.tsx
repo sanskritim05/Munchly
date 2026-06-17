@@ -21,6 +21,22 @@ export function PostPlateForm() {
   const [dishName, setDishName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { maximumAge: 600_000, timeout: 8000 }
+    );
+  }, []);
 
   useEffect(() => {
     async function ensureAuth() {
@@ -145,6 +161,7 @@ export function PostPlateForm() {
           value={restaurant}
           onChange={setRestaurant}
           disabled={loading}
+          location={location}
         />
         <input
           value={dishName}
