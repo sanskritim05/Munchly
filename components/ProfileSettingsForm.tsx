@@ -121,7 +121,7 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-6 px-4 pb-28 pt-6">
+    <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-6 px-4 pb-page pt-6">
       <div className="flex items-center gap-3">
         <Link
           href={`/profile/${initial.username}`}

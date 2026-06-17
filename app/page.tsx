@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-20 text-center">
+    <div className="min-h-app">
+      <div className="relative flex min-h-app flex-col items-center justify-center overflow-hidden px-6 text-center">
         <div className="pointer-events-none absolute inset-0 opacity-30">
           <div className="h-full w-full animate-pulse bg-gradient-to-br from-hot/40 via-purple/20 to-black" />
         </div>

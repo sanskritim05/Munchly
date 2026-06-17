@@ -34,7 +34,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center pb-20">
+      <div className="flex min-h-page items-center justify-center">
         <p className="text-gray-400">Loading...</p>
       </div>
     );

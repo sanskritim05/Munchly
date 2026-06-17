@@ -133,7 +133,7 @@ export function PostPlateForm() {
   const canSubmit = Boolean(file && restaurant.trim() && dishName.trim() && !loading);
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg px-4 pb-28 pt-6">
+    <form onSubmit={onSubmit} className="mx-auto max-w-lg px-4 pb-page pt-6">
       <h1 className="mb-6 text-2xl font-bold">Post a plate</h1>
 
       <div className="mx-auto w-full max-w-sm space-y-4">

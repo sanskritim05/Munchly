@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
+import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { PlateView } from "@/components/PlateView";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { feedLoadingClass, feedMetaClass } from "@/lib/feed-ui";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 interface BrowsePlate {
@@ -79,19 +80,18 @@ export function BrowseFeed() {
 
   if (loading) {
     return (
-      <FeedViewportEmpty>
-        <p className="text-gray-400">Loading posts...</p>
-      </FeedViewportEmpty>
+      <div className="flex h-feed items-center justify-center px-4">
+        <p className={feedLoadingClass}>Loading posts...</p>
+      </div>
     );
   }
 
   if (plates.length === 0) {
     return (
-      <FeedViewportEmpty>
-        <p className="text-xl font-bold">No posts yet</p>
-        <p className="max-w-sm text-gray-400">
-          When others post plates, you can browse them here and leave comments.
-        </p>
+      <FeedViewportEmpty
+        title="No posts yet"
+        description="When others post plates, you can browse them here and leave comments."
+      >
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
             type="button"
@@ -116,9 +116,9 @@ export function BrowseFeed() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-2">
+    <div className="mx-auto max-w-lg px-4 pb-6 pt-2">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-gray-400">{plates.length} posts</p>
+        <p className={feedMetaClass}>{plates.length} posts</p>
         <button
           type="button"
           onClick={() => {
@@ -126,7 +126,7 @@ export function BrowseFeed() {
             void loadBrowse();
           }}
           disabled={refreshing}
-          className="text-sm font-medium text-hot disabled:opacity-50"
+          className={`${feedMetaClass} font-medium text-hot disabled:opacity-50`}
         >
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
@@ -153,16 +153,13 @@ export function BrowseFeed() {
                     unoptimized
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <div className="mb-1 flex items-center gap-2">
-                      <ScoreBadge score={plate.score} size="sm" />
-                      <span className="text-sm text-gray-200">@{plate.username}</span>
-                    </div>
-                    <h3 className="text-lg font-bold">{plate.dish_name ?? "Plate"}</h3>
-                    {plate.restaurant_name ? (
-                      <p className="text-sm text-gray-300">{plate.restaurant_name}</p>
-                    ) : null}
-                  </div>
+                  <FeedPlateOverlay
+                    score={plate.score}
+                    username={plate.username}
+                    title={plate.dish_name ?? "Plate"}
+                    subtitle={plate.restaurant_name}
+                    className="bottom-0 p-5"
+                  />
                 </div>
 
                 <div className="p-4">
@@ -172,7 +169,7 @@ export function BrowseFeed() {
                       <div className="bg-gray-700" style={{ width: `${100 - hotPct}%` }} />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                  <div className={`mt-2 flex items-center justify-between ${feedMetaClass}`}>
                     <span className="inline-flex items-center gap-1">
                       <AppIcon kind="flame" size={14} />
                       {plate.hot_count} hot

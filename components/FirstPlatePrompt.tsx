@@ -16,7 +16,7 @@ export function FirstPlatePrompt() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#080808] px-6 py-10 text-center">
+    <div className="flex min-h-app flex-col items-center justify-center bg-[#080808] px-6 py-10 text-center">
       <div className="relative mb-10 h-40 w-full max-w-xs">
         {cards.map((card, index) => (
           <motion.div

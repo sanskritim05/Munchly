@@ -13,10 +13,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { getStreak, recordRating } from "@/lib/streak";
 import { track } from "@/lib/analytics";
-import { FEED_VIEWPORT_HEIGHT } from "@/lib/feed-scope";
+import { feedLoadingClass } from "@/lib/feed-ui";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
@@ -88,16 +88,12 @@ function SwipeCard({
         </>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-5">
-        <div className="mb-2 flex items-center gap-2">
-          <ScoreBadge score={plate.score} size="sm" />
-          <span className="text-sm text-gray-300">@{plate.username}</span>
-        </div>
-        <h2 className="text-2xl font-bold">{plate.dish_name ?? "Plate"}</h2>
-        {plate.restaurant_name ? (
-          <p className="mt-1 text-sm text-gray-400">{plate.restaurant_name}</p>
-        ) : null}
-      </div>
+      <FeedPlateOverlay
+        score={plate.score}
+        username={plate.username}
+        title={plate.dish_name ?? "Plate"}
+        subtitle={plate.restaurant_name}
+      />
     </motion.div>
   );
 }
@@ -246,9 +242,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
   if (authError) {
     return (
-      <FeedViewportEmpty>
-        <p className="text-lg text-hot">Could not connect</p>
-        <p className="text-sm text-gray-400">{authError}</p>
+      <FeedViewportEmpty title="Could not connect" description={authError}>
         <button
           type="button"
           onClick={() => {
@@ -279,11 +273,8 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
   if (loading) {
     return (
-      <div
-        className="flex items-center justify-center px-4"
-        style={{ height: FEED_VIEWPORT_HEIGHT }}
-      >
-        <p className="text-gray-400">Loading plates to rate...</p>
+      <div className="flex h-feed items-center justify-center px-4">
+        <p className={feedLoadingClass}>Loading plates to rate...</p>
       </div>
     );
   }
@@ -298,15 +289,14 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     }
 
     return (
-      <FeedViewportEmpty>
-        <p className="text-2xl font-bold">
-          {caughtUp ? "You've seen everything" : "Nothing to rate yet"}
-        </p>
-        <p className="max-w-sm text-gray-400">
-          {caughtUp
+      <FeedViewportEmpty
+        title={caughtUp ? "You've seen everything" : "Nothing to rate yet"}
+        description={
+          caughtUp
             ? "Switch to Browse to see all posts and leave comments."
-            : "Plates from other people will show up here. Post yours and invite friends to join."}
-        </p>
+            : "Plates from other people will show up here. Post yours and invite friends to join."
+        }
+      >
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
             type="button"
@@ -328,10 +318,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   }
 
   return (
-    <div
-      className="relative mx-auto max-w-lg px-1"
-      style={{ height: FEED_VIEWPORT_HEIGHT, maxHeight: FEED_VIEWPORT_HEIGHT }}
-    >
+    <div className="relative mx-auto h-feed max-w-lg px-1">
       <div className="absolute right-4 top-1 z-20 rounded-full bg-black/60 px-3 py-1 text-sm">
         <span className="inline-flex items-center gap-1">
           <AppIcon kind="flame" size={16} />

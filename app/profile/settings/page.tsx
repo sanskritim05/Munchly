@@ -57,7 +57,7 @@ export default function ProfileSettingsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center pb-20">
+      <div className="flex min-h-app items-center justify-center">
         <p className="text-gray-400">Loading...</p>
       </div>
     );
@@ -65,7 +65,7 @@ export default function ProfileSettingsPage() {
 
   if (!profile) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 pb-20 text-center">
+      <div className="flex min-h-app flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-gray-400">Could not load settings.</p>
         <Link href="/swipe" className="text-hot">
           Back to rating

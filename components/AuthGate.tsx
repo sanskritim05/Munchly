@@ -33,7 +33,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-app items-center justify-center">
         <p className="text-gray-400">Loading...</p>
       </div>
     );

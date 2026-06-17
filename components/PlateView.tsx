@@ -311,7 +311,7 @@ export function PlateView({
 
   if (!plate) {
     return (
-      <div className="flex min-h-screen items-center justify-center pb-20">
+      <div className="flex min-h-page items-center justify-center">
         <p className="text-gray-400">Loading...</p>
       </div>
     );
@@ -370,7 +370,7 @@ export function PlateView({
     <>
       <ScoreMilestoneLayer celebration={celebration} onDismiss={dismissCelebration} />
 
-      <div className="mx-auto max-w-lg px-4 pb-28 pt-4">
+      <div className="mx-auto max-w-lg px-4 pb-page pt-4">
       {onBack && !isOwner ? (
         <button
           type="button"

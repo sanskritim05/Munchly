@@ -43,7 +43,7 @@ export default function ProfileMePage() {
 
   if (failed) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 pb-20 text-center">
+      <div className="flex min-h-app flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-gray-400">Could not load your profile.</p>
         <Link href="/swipe" className="text-hot">
           Back to rating
@@ -53,7 +53,7 @@ export default function ProfileMePage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center pb-20">
+    <div className="flex min-h-app items-center justify-center">
       <p className="text-gray-400">Loading profile...</p>
     </div>
   );

@@ -15,8 +15,6 @@ const TABS: { href: string; label: string; icon: AppIconKind; match: (path: stri
   { href: "/leaderboard", label: "Top", icon: "trophy", match: (p) => p.startsWith("/leaderboard") },
 ];
 
-const HIDDEN_PATHS = ["/", "/get-started", "/signin", "/signup", "/onboard", "/profile/settings", "/welcome"];
-
 function NavIcon({ kind }: { kind: AppIconKind }) {
   return (
     <span className="flex h-6 w-6 shrink-0 items-center justify-center">
@@ -111,10 +109,6 @@ export function NavBar() {
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
-
-  if (HIDDEN_PATHS.includes(pathname) || pathname.startsWith("/share/") || pathname.startsWith("/admin/")) {
-    return null;
-  }
 
   const youHref = user ? "/profile/me" : "/get-started?next=/profile/me";
   const youActive = pathname.startsWith("/profile");

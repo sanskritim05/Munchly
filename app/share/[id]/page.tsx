@@ -50,7 +50,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
 
   if (!plate) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#080808] px-6 text-center">
+      <div className="flex min-h-app items-center justify-center bg-[#080808] px-6 text-center">
         <div>
           <p className="text-lg text-gray-400">This plate is gone.</p>
           <Link href="/get-started" className="mt-4 inline-block text-hot">
@@ -67,7 +67,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
   const scoreColor = shareScoreColor(score);
 
   return (
-    <div className="min-h-screen bg-[#080808] text-white">
+    <div className="min-h-app bg-[#080808] text-white">
       <ShareAnalyticsTracker plateId={params.id} score={score} />
 
       <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pb-10 pt-8 sm:px-6">

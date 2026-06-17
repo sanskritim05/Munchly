@@ -1,6 +1,8 @@
 import Groq from "groq-sdk";
 import { getUSRestaurants } from "@/lib/us-restaurants";
 
+export const RECOMMENDATION_COUNT = 3;
+
 export interface PlateHistoryItem {
   restaurant_name: string;
   dish_name: string;
@@ -20,6 +22,29 @@ export interface RecommendationResult {
   recommendations: FoodRecommendation[];
 }
 
+const SIGNATURE_DISHES: Record<string, string> = {
+  "Chick-fil-A": "Spicy Chicken Sandwich",
+  Chipotle: "Chicken Burrito Bowl",
+  "Olive Garden": "Tour of Italy",
+  "Panera Bread": "Broccoli Cheddar Soup in Bread Bowl",
+  "The Cheesecake Factory": "Louisiana Chicken Pasta",
+  "Shake Shack": "ShackBurger",
+  "In-N-Out Burger": "Double-Double",
+  "Raising Cane's": "Box Combo",
+  "Buffalo Wild Wings": "Honey BBQ Wings",
+  "Texas Roadhouse": "Hand-Cut Ribeye",
+  "Panda Express": "Orange Chicken",
+  "Wingstop": "Lemon Pepper Wings",
+  Cava: "Harissa Honey Chicken Bowl",
+  Sweetgreen: "Harvest Bowl",
+  "Five Guys": "Cheeseburger with Cajun Fries",
+  Starbucks: "Iced Brown Sugar Oatmilk Shaken Espresso",
+  "Taco Bell": "Crunchwrap Supreme",
+  "P.F. Chang's": "Mongolian Beef",
+  "Red Lobster": "Cheddar Bay Biscuits with Garlic Shrimp",
+  "Jersey Mike's Subs": "Mike's Way Italian Sub",
+};
+
 function getGroq() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY! });
 }
@@ -28,12 +53,66 @@ function cleanText(text: string) {
   return text.replace(/[—–]/g, "-").trim();
 }
 
+function normalizeKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function signatureDishFor(restaurant: string) {
+  return SIGNATURE_DISHES[restaurant] ?? "Signature entree";
+}
+
+function buildAvoidLists(history: PlateHistoryItem[]) {
+  const dishes = Array.from(new Set(history.map((h) => h.dish_name.trim()).filter(Boolean)));
+  const restaurants = Array.from(
+    new Set(history.map((h) => h.restaurant_name.trim()).filter(Boolean))
+  );
+  return { dishes, restaurants };
+}
+
+function sanitizeRecommendations(
+  recs: FoodRecommendation[],
+  history: PlateHistoryItem[],
+  limit = RECOMMENDATION_COUNT
+): FoodRecommendation[] {
+  const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
+  const pastRestaurants = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
+  const seenRestaurants = new Set<string>();
+  const seenDishes = new Set<string>();
+  const cleaned: FoodRecommendation[] = [];
+
+  for (const rec of recs) {
+    const restaurant = cleanText(rec.restaurant);
+    const dish = cleanText(rec.dish);
+    const reason = cleanText(rec.reason);
+
+    if (!restaurant || !dish) continue;
+
+    const restaurantKey = normalizeKey(restaurant);
+    const dishKey = normalizeKey(dish);
+
+    if (pastDishes.has(dishKey)) continue;
+    if (pastRestaurants.has(restaurantKey)) continue;
+    if (seenRestaurants.has(restaurantKey)) continue;
+    if (seenDishes.has(dishKey)) continue;
+
+    seenRestaurants.add(restaurantKey);
+    seenDishes.add(dishKey);
+    cleaned.push({ restaurant, dish, reason: reason || "A new pick based on your taste." });
+
+    if (cleaned.length >= limit) break;
+  }
+
+  return cleaned;
+}
+
 function fallbackRecommendations(
   history: PlateHistoryItem[],
   locationLabel: string | null
 ): RecommendationResult {
-  const visited = new Set(history.map((h) => h.restaurant_name.toLowerCase()));
-  const candidates = getUSRestaurants().filter((r) => !visited.has(r.toLowerCase()));
+  const visited = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
+  const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
+  const candidates = getUSRestaurants().filter((r) => !visited.has(normalizeKey(r)));
+
   const topDishes = history
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
@@ -41,16 +120,25 @@ function fallbackRecommendations(
 
   const taste_summary =
     history.length > 0
-      ? `You often post ${topDishes.join(", ")}.`
+      ? `You seem to like ${topDishes.slice(0, 2).join(" and ")}. Here are new spots to try.`
       : "Post plates to build your taste profile.";
 
-  const recommendations: FoodRecommendation[] = candidates.slice(0, 4).map((restaurant, i) => ({
-    restaurant,
-    dish: topDishes[i % topDishes.length] ?? "Chef's pick",
-    reason: locationLabel
-      ? `Popular spot to try near ${locationLabel}.`
-      : "Matches restaurants and flavors you already like.",
-  }));
+  const recommendations: FoodRecommendation[] = [];
+
+  for (const restaurant of candidates) {
+    const dish = signatureDishFor(restaurant);
+    if (pastDishes.has(normalizeKey(dish))) continue;
+
+    recommendations.push({
+      restaurant,
+      dish,
+      reason: locationLabel
+        ? `Popular near ${locationLabel} and different from what you've posted.`
+        : "A well-known pick that fits your taste profile.",
+    });
+
+    if (recommendations.length >= RECOMMENDATION_COUNT) break;
+  }
 
   return {
     mode: locationLabel ? "nearby" : "taste",
@@ -58,6 +146,21 @@ function fallbackRecommendations(
     location_label: locationLabel,
     recommendations,
   };
+}
+
+function fillMissingRecommendations(
+  current: FoodRecommendation[],
+  history: PlateHistoryItem[],
+  locationLabel: string | null
+): FoodRecommendation[] {
+  if (current.length >= RECOMMENDATION_COUNT) {
+    return current.slice(0, RECOMMENDATION_COUNT);
+  }
+
+  const fallback = fallbackRecommendations(history, locationLabel).recommendations;
+  const merged = sanitizeRecommendations([...current, ...fallback], history, RECOMMENDATION_COUNT);
+
+  return merged.slice(0, RECOMMENDATION_COUNT);
 }
 
 export async function getFoodRecommendations(
@@ -77,6 +180,8 @@ export async function getFoodRecommendations(
     return fallbackRecommendations(history, locationLabel);
   }
 
+  const { dishes: avoidDishes, restaurants: avoidRestaurants } = buildAvoidLists(history);
+
   const historyText = history
     .map(
       (h) =>
@@ -87,41 +192,52 @@ export async function getFoodRecommendations(
   const mode = locationLabel ? "nearby" : "taste";
   const locationContext = locationLabel
     ? `The user is near ${locationLabel}. Prioritize restaurants likely available in that area.`
-    : "No location shared. Recommend US restaurants that fit their taste from chains and well-known brands.";
+    : "No location shared. Recommend real US restaurant chains or widely known restaurants.";
 
   try {
     const response = await getGroq().chat.completions.create({
       model: "llama-3.3-70b-versatile",
-      temperature: 0.6,
-      max_tokens: 700,
+      temperature: 0.75,
+      max_tokens: 650,
       messages: [
         {
           role: "system",
           content: `You are a food recommendation assistant for PlateCheck.
 Return ONLY valid JSON, no markdown:
 {
-  "taste_summary": string (one short sentence about their taste),
+  "taste_summary": string (one short sentence about their taste, not listing their past orders),
   "recommendations": [
     { "restaurant": string, "dish": string, "reason": string (max 14 words) }
   ]
 }
 
 Rules:
-- Give exactly 4 recommendations
+- Give exactly ${RECOMMENDATION_COUNT} recommendations
+- Each recommendation MUST include both a restaurant and a specific menu item to order there
+- Recommend NEW restaurants the user has NOT visited before
+- Recommend NEW dishes the user has NOT posted before
+- Never repeat or lightly reword dishes from their history
+- Pick signature or popular items at each restaurant that match their taste profile
 - Use real US restaurant chains or widely known restaurant names
-- Base picks on their posting history (dishes and restaurants)
+- All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
-- Each reason must be specific to their history or location`,
+- Reasons should explain why this new pick fits their taste, not restate what they already ate`,
         },
         {
           role: "user",
           content: `Mode: ${mode}
 ${locationContext}
 
-Their plate history:
+Their plate history (for taste profile only — do NOT recommend these again):
 ${historyText}
 
-Suggest restaurants and specific dishes to try next.`,
+Dishes they already ordered (never recommend these):
+${avoidDishes.join(", ") || "none"}
+
+Restaurants they already visited (never recommend these):
+${avoidRestaurants.join(", ") || "none"}
+
+Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at each.`,
         },
       ],
     });
@@ -135,13 +251,17 @@ Suggest restaurants and specific dishes to try next.`,
       recommendations?: FoodRecommendation[];
     };
 
-    const recommendations = (parsed.recommendations ?? [])
-      .slice(0, 4)
-      .map((r) => ({
-        restaurant: cleanText(r.restaurant || "Local favorite"),
-        dish: cleanText(r.dish || "House special"),
-        reason: cleanText(r.reason || "Based on your taste."),
-      }));
+    const raw = (parsed.recommendations ?? []).map((r) => ({
+      restaurant: cleanText(r.restaurant || ""),
+      dish: cleanText(r.dish || ""),
+      reason: cleanText(r.reason || ""),
+    }));
+
+    const recommendations = fillMissingRecommendations(
+      sanitizeRecommendations(raw, history),
+      history,
+      locationLabel
+    );
 
     if (recommendations.length === 0) {
       return fallbackRecommendations(history, locationLabel);
@@ -149,7 +269,9 @@ Suggest restaurants and specific dishes to try next.`,
 
     return {
       mode,
-      taste_summary: cleanText(parsed.taste_summary || "Picks based on what you post."),
+      taste_summary: cleanText(
+        parsed.taste_summary || "New picks based on flavors you seem to enjoy."
+      ),
       location_label: locationLabel,
       recommendations,
     };

@@ -36,9 +36,10 @@ export function FollowingFeedEmptyState({
 
   if (followsNobody) {
     return (
-      <FeedViewportEmpty>
-        <p className="text-xl font-bold">follow people to see their plates here</p>
-        <p className="text-sm text-gray-500">find people on the leaderboard</p>
+      <FeedViewportEmpty
+        title="follow people to see their plates here"
+        description="find people on the leaderboard"
+      >
         <Link
           href="/leaderboard"
           className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
@@ -50,8 +51,7 @@ export function FollowingFeedEmptyState({
   }
 
   return (
-    <FeedViewportEmpty>
-      <p className="text-xl font-bold">nobody you follow has posted yet</p>
+    <FeedViewportEmpty title="nobody you follow has posted yet">
       <button
         type="button"
         onClick={() => void inviteFriends()}

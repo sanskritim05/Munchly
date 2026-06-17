@@ -1,12 +1,21 @@
-import { FEED_VIEWPORT_HEIGHT } from "@/lib/feed-scope";
+import { feedEmptyBodyClass, feedEmptyTitleClass } from "@/lib/feed-ui";
 
-export function FeedViewportEmpty({ children }: { children: React.ReactNode }) {
+export function FeedViewportEmpty({
+  title,
+  description,
+  children,
+}: {
+  title?: string;
+  description?: string;
+  children?: React.ReactNode;
+}) {
   return (
-    <div
-      className="flex items-center justify-center px-4"
-      style={{ height: FEED_VIEWPORT_HEIGHT }}
-    >
-      <div className="flex max-w-sm flex-col items-center gap-4 text-center">{children}</div>
+    <div className="flex h-feed items-center justify-center px-4">
+      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
+        {title ? <p className={feedEmptyTitleClass}>{title}</p> : null}
+        {description ? <p className={feedEmptyBodyClass}>{description}</p> : null}
+        {children}
+      </div>
     </div>
   );
 }

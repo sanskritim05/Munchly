@@ -47,7 +47,7 @@ export default async function LeaderboardPage() {
     .filter((entry): entry is LeaderboardEntry => entry !== null);
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
+    <div className="mx-auto max-w-lg px-4 pb-page pt-6">
       <AnalyticsOnce eventName="leaderboard_viewed" />
       <h1 className="flex items-center gap-2 text-3xl font-bold">
         This Week&apos;s Hottest Plates <AppIcon kind="trophy" size={32} />

@@ -27,15 +27,21 @@ export function SwipeFeed() {
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <div className="sticky top-0 z-30 bg-black px-4 py-3">
+    <div className="mx-auto flex h-page max-w-lg flex-col overflow-hidden">
+      <div className="shrink-0 bg-[var(--bg)] px-4 py-3">
         <FeedTabBar tab={tab} onChange={onTabChange} />
       </div>
-      {tab === "browse" ? (
-        <BrowseFeed />
-      ) : (
-        <RateFeed scope={tab === "following" ? "following" : "foryou"} />
-      )}
+      <div
+        className={`min-h-0 flex-1 ${
+          tab === "browse" ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"
+        }`}
+      >
+        {tab === "browse" ? (
+          <BrowseFeed />
+        ) : (
+          <RateFeed scope={tab === "following" ? "following" : "foryou"} />
+        )}
+      </div>
     </div>
   );
 }

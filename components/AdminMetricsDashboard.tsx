@@ -140,7 +140,7 @@ export function AdminMetricsDashboard() {
 
   if (authLoading || status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex min-h-app items-center justify-center bg-black">
         <p className="text-gray-400">Loading metrics...</p>
       </div>
     );
@@ -148,7 +148,7 @@ export function AdminMetricsDashboard() {
 
   if (status === "error") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black px-6 text-center">
+      <div className="flex min-h-app flex-col items-center justify-center gap-4 bg-black px-6 text-center">
         <p className="text-hot">Could not load metrics</p>
         <p className="max-w-sm text-sm text-gray-400">{errorMessage}</p>
         <p className="max-w-sm text-xs text-gray-500">
@@ -164,7 +164,7 @@ export function AdminMetricsDashboard() {
 
   if (status === "forbidden" || !metrics) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6 py-10 text-center">
+      <div className="flex min-h-app flex-col items-center justify-center bg-black px-6 py-10 text-center">
         <p className="text-lg font-bold">Admin sign-in required</p>
         <p className="mt-2 max-w-sm text-sm text-gray-400">
           {user?.email
@@ -183,7 +183,7 @@ export function AdminMetricsDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 pb-20">
+    <div className="mx-auto max-w-5xl px-4 py-10 pb-page">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Metrics</h1>
         <p className="mt-1 text-sm text-gray-400">YC-ready numbers from Supabase events.</p>

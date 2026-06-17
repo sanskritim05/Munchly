@@ -27,7 +27,7 @@ export default async function ProfilePage({
 
   if (!profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center pb-20">
+      <div className="flex min-h-page items-center justify-center">
         <p className="text-gray-400">User not found</p>
       </div>
     );
@@ -43,10 +43,12 @@ export default async function ProfilePage({
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  const best = plates?.[0];
+  const best =
+    plates?.length &&
+    [...plates].sort((a, b) => Number(b.score) - Number(a.score))[0];
 
   return (
-    <div className="relative mx-auto max-w-lg px-4 pb-28 pt-6">
+    <div className="relative mx-auto max-w-lg px-4 pb-page pt-6">
       <ProfileViewTracker profileUserId={profile.id} />
       <ProfileSettingsButton profileUserId={profile.id} />
 
@@ -91,7 +93,10 @@ export default async function ProfilePage({
               <Image src={best.image_url} alt="" fill className="object-cover" unoptimized />
             </div>
             <div>
-              <p className="font-bold">{best.dish_name}</p>
+              <p className="font-bold">{best.restaurant_name ?? best.dish_name ?? "Plate"}</p>
+              {best.restaurant_name && best.dish_name ? (
+                <p className="text-sm text-gray-400">{best.dish_name}</p>
+              ) : null}
               <ScoreBadge score={Number(best.score)} size="sm" />
             </div>
           </div>

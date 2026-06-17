@@ -118,10 +118,12 @@ export function ProfileRecommendations({
             <span aria-hidden="true">
               <AppIcon kind="flame" size={20} />
             </span>
-            For You
+            Taste picks
           </h2>
           {plateCount > 0 ? (
-            <p className="mt-1 text-sm text-gray-400">Based on what you post and where you eat.</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Three new restaurants and dishes to try based on your taste.
+            </p>
           ) : null}
         </div>
         {plateCount > 0 ? (
@@ -175,7 +177,9 @@ export function ProfileRecommendations({
                 className="rounded-xl border border-border bg-black/40 p-3"
               >
                 <p className="font-bold">{rec.restaurant}</p>
-                <p className="text-sm text-hot">{rec.dish}</p>
+                <p className="mt-1 text-sm text-gray-200">
+                  Try: <span className="font-semibold text-hot">{rec.dish}</span>
+                </p>
                 <p className="mt-1 text-xs text-gray-400">{rec.reason}</p>
               </li>
             ))}
