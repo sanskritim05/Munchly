@@ -1,12 +1,12 @@
 "use client";
 
-import { Session, User } from "@supabase/supabase-js";
+import { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
+  useRef,
   useState,
 } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -27,22 +27,39 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const supabase = useMemo(() => createBrowserClient(), []);
+  const supabaseRef = useRef<SupabaseClient | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getSupabase = useCallback(() => {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserClient();
+    }
+    return supabaseRef.current;
+  }, []);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    let unsubscribe: (() => void) | undefined;
+
+    try {
+      const supabase = getSupabase();
+
+      supabase.auth.getSession().then(({ data }) => {
+        setSession(data.session);
+        setLoading(false);
+      });
+
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+        setSession(next);
+      });
+
+      unsubscribe = () => sub.subscription.unsubscribe();
+    } catch {
       setLoading(false);
-    });
+    }
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-    });
-
-    return () => sub.subscription.unsubscribe();
-  }, [supabase]);
+    return () => unsubscribe?.();
+  }, [getSupabase]);
 
   const signInGuest = useCallback(async () => {
     try {
@@ -53,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: body.error ?? "Could not start guest session" };
       }
 
-      const { data, error } = await supabase.auth.setSession({
+      const { data, error } = await getSupabase().auth.setSession({
         access_token: body.access_token,
         refresh_token: body.refresh_token,
       });
@@ -64,12 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       return { error: "Could not connect. Check your network and try again." };
     }
-  }, [supabase]);
+  }, [getSupabase]);
 
   const applySession = useCallback(
     async (accessToken: string, refreshToken: string) => {
       try {
-        const { data, error } = await supabase.auth.setSession({
+        const { data, error } = await getSupabase().auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
@@ -81,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: "Could not connect. Check your network and try again." };
       }
     },
-    [supabase]
+    [getSupabase]
   );
 
   const signInUsername = useCallback(
@@ -108,23 +125,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInEmail = useCallback(
     async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await getSupabase().auth.signInWithPassword({ email, password });
       return error ? { error: error.message } : {};
     },
-    [supabase]
+    [getSupabase]
   );
 
   const signUpEmail = useCallback(
     async (email: string, password: string) => {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await getSupabase().auth.signUp({ email, password });
       return error ? { error: error.message } : {};
     },
-    [supabase]
+    [getSupabase]
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, [supabase]);
+    await getSupabase().auth.signOut();
+  }, [getSupabase]);
 
   const value: AuthContextValue = {
     user: session?.user ?? null,

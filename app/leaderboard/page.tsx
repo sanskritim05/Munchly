@@ -5,6 +5,8 @@ import { AnalyticsOnce } from "@/components/AnalyticsOnce";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
 interface LeaderboardEntry {
   plateId: string;
   rank: number;
