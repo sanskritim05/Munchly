@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { getSignatureDish, isGenericDishName } from "@/lib/signature-dishes";
 import { getUSRestaurants } from "@/lib/us-restaurants";
 
 export const RECOMMENDATION_COUNT = 3;
@@ -22,29 +23,6 @@ export interface RecommendationResult {
   recommendations: FoodRecommendation[];
 }
 
-const SIGNATURE_DISHES: Record<string, string> = {
-  "Chick-fil-A": "Spicy Chicken Sandwich",
-  Chipotle: "Chicken Burrito Bowl",
-  "Olive Garden": "Tour of Italy",
-  "Panera Bread": "Broccoli Cheddar Soup in Bread Bowl",
-  "The Cheesecake Factory": "Louisiana Chicken Pasta",
-  "Shake Shack": "ShackBurger",
-  "In-N-Out Burger": "Double-Double",
-  "Raising Cane's": "Box Combo",
-  "Buffalo Wild Wings": "Honey BBQ Wings",
-  "Texas Roadhouse": "Hand-Cut Ribeye",
-  "Panda Express": "Orange Chicken",
-  "Wingstop": "Lemon Pepper Wings",
-  Cava: "Harissa Honey Chicken Bowl",
-  Sweetgreen: "Harvest Bowl",
-  "Five Guys": "Cheeseburger with Cajun Fries",
-  Starbucks: "Iced Brown Sugar Oatmilk Shaken Espresso",
-  "Taco Bell": "Crunchwrap Supreme",
-  "P.F. Chang's": "Mongolian Beef",
-  "Red Lobster": "Cheddar Bay Biscuits with Garlic Shrimp",
-  "Jersey Mike's Subs": "Mike's Way Italian Sub",
-};
-
 function getGroq() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY! });
 }
@@ -57,8 +35,12 @@ function normalizeKey(value: string) {
   return value.trim().toLowerCase();
 }
 
-function signatureDishFor(restaurant: string) {
-  return SIGNATURE_DISHES[restaurant] ?? "Signature entree";
+function resolveDishName(restaurant: string, dish: string) {
+  const cleaned = cleanText(dish);
+  if (!cleaned || isGenericDishName(cleaned)) {
+    return getSignatureDish(restaurant);
+  }
+  return cleaned;
 }
 
 function buildAvoidLists(history: PlateHistoryItem[]) {
@@ -82,7 +64,7 @@ function sanitizeRecommendations(
 
   for (const rec of recs) {
     const restaurant = cleanText(rec.restaurant);
-    const dish = cleanText(rec.dish);
+    const dish = resolveDishName(restaurant, rec.dish);
     const reason = cleanText(rec.reason);
 
     if (!restaurant || !dish) continue;
@@ -126,7 +108,7 @@ function fallbackRecommendations(
   const recommendations: FoodRecommendation[] = [];
 
   for (const restaurant of candidates) {
-    const dish = signatureDishFor(restaurant);
+    const dish = getSignatureDish(restaurant);
     if (pastDishes.has(normalizeKey(dish))) continue;
 
     recommendations.push({
@@ -217,7 +199,8 @@ Rules:
 - Recommend NEW restaurants the user has NOT visited before
 - Recommend NEW dishes the user has NOT posted before
 - Never repeat or lightly reword dishes from their history
-- Pick signature or popular items at each restaurant that match their taste profile
+- Pick a real, specific menu item at each restaurant (e.g. "Orange Chicken", not "house special")
+- Never use generic dish names like "signature entree", "house special", or "chef's pick"
 - Use real US restaurant chains or widely known restaurant names
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
