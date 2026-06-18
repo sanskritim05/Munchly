@@ -47,9 +47,9 @@ export default async function LeaderboardPage() {
     .filter((entry): entry is LeaderboardEntry => entry !== null);
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-page pt-6">
+    <div className="app-container px-page pb-page pt-4 sm:pt-6">
       <AnalyticsOnce eventName="leaderboard_viewed" />
-      <h1 className="flex items-center gap-2 text-3xl font-bold">
+      <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
         This Week&apos;s Hottest Plates <AppIcon kind="trophy" size={32} />
       </h1>
 

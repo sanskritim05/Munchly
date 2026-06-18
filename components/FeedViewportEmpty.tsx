@@ -10,7 +10,7 @@ export function FeedViewportEmpty({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex h-feed items-center justify-center px-4">
+    <div className="flex h-full items-center justify-center px-page">
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
         {title ? <p className={feedEmptyTitleClass}>{title}</p> : null}
         {description ? <p className={feedEmptyBodyClass}>{description}</p> : null}

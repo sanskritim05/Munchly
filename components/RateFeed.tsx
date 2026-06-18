@@ -31,10 +31,14 @@ interface FeedPlate {
   username: string;
 }
 
-const SWIPE_THRESHOLD = 90;
-const SWIPE_VELOCITY = 450;
-const BUTTON_SIZE = "h-[4.25rem] w-[4.25rem]";
-const ICON_SIZE = 44;
+const SWIPE_THRESHOLD = 80;
+const SWIPE_VELOCITY = 400;
+const EXIT_X = 640;
+const BUTTON_SIZE = "h-[3.75rem] w-[3.75rem] sm:h-[4.25rem] sm:w-[4.25rem]";
+const ICON_SIZE = 40;
+
+const EXIT_EASE = [0.32, 0.72, 0, 1] as const;
+const SNAP_BACK_SPRING = { type: "spring" as const, stiffness: 460, damping: 32, mass: 0.7 };
 
 function SwipeCard({
   plate,
@@ -54,17 +58,18 @@ function SwipeCard({
   return (
     <motion.div
       drag={interactive ? "x" : false}
-      dragConstraints={interactive ? { left: 0, right: 0 } : undefined}
-      dragElastic={interactive ? 0.85 : undefined}
+      dragMomentum={false}
+      dragElastic={0.15}
+      dragSnapToOrigin={false}
       onDragEnd={interactive ? onDragEnd : undefined}
       style={motionStyle}
-      className="absolute inset-0 bottom-20 overflow-hidden rounded-2xl bg-surface shadow-2xl will-change-transform"
+      className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)] touch-none select-none overflow-hidden rounded-2xl bg-surface shadow-2xl will-change-transform"
     >
       <Image
         src={plate.image_url}
         alt={plate.dish_name ?? "Plate"}
         fill
-        className="object-cover select-none"
+        className="pointer-events-none object-cover select-none"
         priority={interactive}
         draggable={false}
         unoptimized
@@ -75,13 +80,13 @@ function SwipeCard({
         <>
           <motion.div
             style={{ opacity: hotOpacity }}
-            className="pointer-events-none absolute left-5 top-8 rotate-[-12deg] rounded-lg border-4 border-hot px-4 py-2 text-3xl font-black tracking-wider text-hot"
+            className="pointer-events-none absolute left-5 top-8 rotate-[-18deg] rounded-lg border-4 border-hot px-4 py-2 text-3xl font-black tracking-wider text-hot"
           >
             HOT
           </motion.div>
           <motion.div
             style={{ opacity: notOpacity }}
-            className="pointer-events-none absolute right-5 top-8 rotate-[12deg] rounded-lg border-4 border-gray-300 px-4 py-2 text-3xl font-black tracking-wider text-gray-200"
+            className="pointer-events-none absolute right-5 top-8 rotate-[18deg] rounded-lg border-4 border-gray-300 px-4 py-2 text-3xl font-black tracking-wider text-gray-200"
           >
             NOT
           </motion.div>
@@ -112,9 +117,14 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   const [isLeaving, setIsLeaving] = useState(false);
 
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 0, 220], [-14, 0, 14]);
-  const hotOpacity = useTransform(x, [0, 60, 120], [0, 0.6, 1]);
-  const notOpacity = useTransform(x, [-120, -60, 0], [1, 0.6, 0]);
+  const rotate = useTransform(x, [-280, 0, 280], [-22, 0, 22]);
+  const hotOpacity = useTransform(x, [0, 50, 120], [0, 0.55, 1]);
+  const notOpacity = useTransform(x, [-120, -50, 0], [1, 0.55, 0]);
+
+  const absX = useTransform(x, (value) => Math.abs(value));
+  const nextScale = useTransform(absX, [0, 240], [0.92, 1]);
+  const nextY = useTransform(absX, [0, 240], [16, 0]);
+  const nextOpacity = useTransform(absX, [0, 200], [0.86, 1]);
 
   const loadFeed = useCallback(async (tokenOverride?: string) => {
     const token = tokenOverride ?? getAccessToken();
@@ -128,10 +138,11 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     setFollowingCount(data.following_count ?? 0);
     setFollowingHasPosts(Boolean(data.following_has_posts));
     setIndex(0);
+    x.set(0);
     setLoading(false);
     setRefreshing(false);
     return true;
-  }, [getAccessToken, scope]);
+  }, [getAccessToken, scope, x]);
 
   useEffect(() => {
     async function init() {
@@ -199,13 +210,11 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     if (!current || isLeaving) return;
 
     setIsLeaving(true);
-    const destination = rating === 1 ? 520 : -520;
+    const destination = rating === 1 ? EXIT_X : -EXIT_X;
 
     await animate(x, destination, {
-      type: "spring",
-      stiffness: 280,
-      damping: 28,
-      mass: 0.8,
+      duration: 0.28,
+      ease: EXIT_EASE,
     });
 
     void submitRating(current.id, rating);
@@ -217,10 +226,11 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   function onDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     if (isLeaving) return;
 
-    const passedRight =
-      info.offset.x > SWIPE_THRESHOLD || info.velocity.x > SWIPE_VELOCITY;
-    const passedLeft =
-      info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -SWIPE_VELOCITY;
+    const offset = info.offset.x;
+    const velocity = info.velocity.x;
+
+    const passedRight = offset > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY;
+    const passedLeft = offset < -SWIPE_THRESHOLD || velocity < -SWIPE_VELOCITY;
 
     if (passedRight) {
       void flyOff(1);
@@ -232,7 +242,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
       return;
     }
 
-    animate(x, 0, { type: "spring", stiffness: 520, damping: 36 });
+    void animate(x, 0, SNAP_BACK_SPRING);
   }
 
   async function refreshFeed() {
@@ -273,7 +283,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
   if (loading) {
     return (
-      <div className="flex h-feed items-center justify-center px-4">
+      <div className="flex h-full items-center justify-center px-page">
         <p className={feedLoadingClass}>Loading plates to rate...</p>
       </div>
     );
@@ -318,8 +328,8 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   }
 
   return (
-    <div className="relative mx-auto h-feed max-w-lg px-1">
-      <div className="absolute right-4 top-1 z-20 rounded-full bg-black/60 px-3 py-1 text-sm">
+    <div className="relative mx-auto h-full w-full touch-none px-feed">
+      <div className="absolute right-3 top-2 z-20 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-black/60 px-3 py-1 text-xs sm:text-sm">
         <span className="inline-flex items-center gap-1">
           <AppIcon kind="flame" size={16} />
           {ratedToday} rated today
@@ -327,35 +337,42 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
         {streak > 0 ? ` · Day ${streak} streak` : ""}
       </div>
 
-      <div className="absolute inset-0 pt-8">
+      <div className="absolute inset-x-0 top-2 bottom-[var(--feed-actions-height)]">
         {next ? (
           <SwipeCard
+            key={next.id}
             plate={next}
             motionStyle={{
-              scale: 0.96,
-              y: 8,
-              opacity: 0.92,
+              scale: nextScale,
+              y: nextY,
+              opacity: nextOpacity,
               zIndex: 0,
             }}
           />
         ) : null}
 
         <SwipeCard
+          key={current.id}
           plate={current}
           interactive
           hotOpacity={hotOpacity}
           notOpacity={notOpacity}
           onDragEnd={onDragEnd}
-          motionStyle={{ x, rotate, zIndex: 10, touchAction: "none" }}
+          motionStyle={{
+            x,
+            rotate,
+            zIndex: 10,
+            touchAction: "none",
+          }}
         />
       </div>
 
-      <div className="absolute bottom-20 left-0 right-0 flex items-center justify-center gap-8 px-6">
+      <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
         <motion.button
           type="button"
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.9 }}
           disabled={isLeaving}
-          onClick={() => flyOff(0)}
+          onClick={() => void flyOff(0)}
           className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-border bg-surface disabled:opacity-50`}
           aria-label="Not"
         >
@@ -363,9 +380,9 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
         </motion.button>
         <motion.button
           type="button"
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.9 }}
           disabled={isLeaving}
-          onClick={() => flyOff(1)}
+          onClick={() => void flyOff(1)}
           className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-hot/50 bg-surface shadow-lg shadow-hot/20 disabled:opacity-50`}
           aria-label="Hot"
         >

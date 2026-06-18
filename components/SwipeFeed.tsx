@@ -27,8 +27,8 @@ export function SwipeFeed() {
   }
 
   return (
-    <div className="mx-auto flex h-page max-w-lg flex-col overflow-hidden">
-      <div className="shrink-0 bg-[var(--bg)] px-4 py-3">
+    <div className="app-container flex h-page w-full flex-col overflow-hidden">
+      <div className="shrink-0 bg-[var(--bg)] px-feed py-2">
         <FeedTabBar tab={tab} onChange={onTabChange} />
       </div>
       <div

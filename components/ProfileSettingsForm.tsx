@@ -7,6 +7,10 @@ import { AvatarPicker } from "@/components/AvatarPicker";
 import { ThemeSetting } from "@/components/ThemeSetting";
 import { useAuth } from "@/components/AuthProvider";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
+import {
+  canChangeIdentity,
+  formatIdentityUnlockDate,
+} from "@/lib/profile-identity";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 
 interface ProfileData {
@@ -14,6 +18,8 @@ interface ProfileData {
   username: string;
   bio: string | null;
   avatar_url: string | null;
+  username_changed_at: string | null;
+  display_name_changed_at: string | null;
 }
 
 export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
@@ -27,6 +33,11 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const canChangeUsername = canChangeIdentity(initial.username_changed_at);
+  const canChangeDisplayName = canChangeIdentity(initial.display_name_changed_at);
+  const usernameUnlockDate = formatIdentityUnlockDate(initial.username_changed_at);
+  const displayNameUnlockDate = formatIdentityUnlockDate(initial.display_name_changed_at);
 
   function onAvatarChange(newFile: File | null, previewUrl: string | null) {
     if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -48,6 +59,16 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
     const usernameError = getUsernameError(cleanUsername);
     if (usernameError) {
       setError(usernameError);
+      return;
+    }
+
+    if (!canChangeUsername && cleanUsername !== initial.username) {
+      setError(`You can change your username again on ${usernameUnlockDate}.`);
+      return;
+    }
+
+    if (!canChangeDisplayName && name !== (initial.display_name ?? "").trim()) {
+      setError(`You can change your name again on ${displayNameUnlockDate}.`);
       return;
     }
 
@@ -122,7 +143,7 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-6 px-4 pb-page pt-6">
+    <form onSubmit={onSubmit} className="app-container space-y-6 px-page pb-page pt-4 sm:pt-6">
       <div className="flex items-center gap-3">
         <Link
           href={`/profile/${initial.username}`}
@@ -151,8 +172,16 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
           onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
           required
           maxLength={50}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-3"
+          readOnly={!canChangeDisplayName}
+          className={`w-full rounded-xl border border-border bg-surface px-4 py-3 ${
+            !canChangeDisplayName ? "cursor-not-allowed opacity-70" : ""
+          }`}
         />
+        {!canChangeDisplayName && displayNameUnlockDate ? (
+          <p className="mt-1 text-xs text-gray-500">
+            You can change your name again on {displayNameUnlockDate}.
+          </p>
+        ) : null}
       </div>
 
       <div>
@@ -165,8 +194,16 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
           onChange={(e) => setUsername(e.target.value)}
           required
           maxLength={20}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-3"
+          readOnly={!canChangeUsername}
+          className={`w-full rounded-xl border border-border bg-surface px-4 py-3 ${
+            !canChangeUsername ? "cursor-not-allowed opacity-70" : ""
+          }`}
         />
+        {!canChangeUsername && usernameUnlockDate ? (
+          <p className="mt-1 text-xs text-gray-500">
+            You can change your username again on {usernameUnlockDate}.
+          </p>
+        ) : null}
       </div>
 
       <div>

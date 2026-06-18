@@ -47,8 +47,8 @@ export function UsernameSignInForm() {
   }
 
   return (
-    <div className="min-h-app">
-      <div className="relative flex min-h-page flex-col items-center justify-center overflow-hidden px-6 pb-8 pt-12 text-center">
+    <div className="min-h-page">
+      <div className="relative flex min-h-page flex-col items-center justify-center overflow-hidden px-page pb-8 pt-8 text-center sm:pt-12">
         <div className="absolute inset-0 opacity-30">
           <div className="animate-pulse bg-gradient-to-br from-hot/40 via-purple/20 to-black" />
         </div>

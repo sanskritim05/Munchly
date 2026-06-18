@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
+import {
+  canChangeIdentity,
+  identityChangeError,
+} from "@/lib/profile-identity";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -26,6 +30,33 @@ export async function PATCH(request: Request) {
 
   const supabase = createAdminClient();
 
+  const { data: current, error: currentError } = await supabase
+    .from("profiles")
+    .select("username, display_name, username_changed_at, display_name_changed_at")
+    .eq("id", user.id)
+    .single();
+
+  if (currentError || !current) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  }
+
+  const usernameChanging = current.username !== username;
+  const displayNameChanging = (current.display_name ?? "").trim() !== display_name;
+
+  if (usernameChanging) {
+    const error = identityChangeError("username", current.username_changed_at);
+    if (error) {
+      return NextResponse.json({ error }, { status: 429 });
+    }
+  }
+
+  if (displayNameChanging) {
+    const error = identityChangeError("name", current.display_name_changed_at);
+    if (error) {
+      return NextResponse.json({ error }, { status: 429 });
+    }
+  }
+
   const { data: existing } = await supabase
     .from("profiles")
     .select("id")
@@ -45,12 +76,22 @@ export async function PATCH(request: Request) {
       bio: bio || null,
     })
     .eq("id", user.id)
-    .select("username, display_name, bio")
+    .select(
+      "username, display_name, bio, username_changed_at, display_name_changed_at"
+    )
     .single();
 
   if (error || !profile) {
     return NextResponse.json({ error: error?.message ?? "Failed to update profile" }, { status: 500 });
   }
 
-  return NextResponse.json({ profile });
+  return NextResponse.json({
+    profile,
+    identity_limits: {
+      username_change_allowed: canChangeIdentity(profile.username_changed_at),
+      display_name_change_allowed: canChangeIdentity(profile.display_name_changed_at),
+      username_changed_at: profile.username_changed_at,
+      display_name_changed_at: profile.display_name_changed_at,
+    },
+  });
 }

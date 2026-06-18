@@ -48,7 +48,7 @@ export default async function ProfilePage({
     [...plates].sort((a, b) => Number(b.score) - Number(a.score))[0];
 
   return (
-    <div className="relative mx-auto max-w-lg px-4 pb-page pt-6">
+    <div className="app-container px-page pb-page pt-4 sm:pt-6">
       <ProfileViewTracker profileUserId={profile.id} />
       <ProfileSettingsButton profileUserId={profile.id} />
 
@@ -65,7 +65,7 @@ export default async function ProfilePage({
 
       <ProfileRecommendations profileUserId={profile.id} plateCount={totalPlates} />
 
-      <div className="mt-6 grid grid-cols-3 gap-4 rounded-2xl border border-border bg-surface p-4 text-center">
+      <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-surface p-3 text-center sm:gap-4 sm:p-4">
         <div>
           <p className="text-2xl font-bold">{totalPlates}</p>
           <p className="text-xs text-gray-400">Plates</p>

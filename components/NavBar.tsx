@@ -115,7 +115,7 @@ export function NavBar() {
 
   return (
     <nav className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-black/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="app-container flex w-full items-center justify-around px-page py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {TABS.map((tab) => (
           <NavTab
             key={tab.href}

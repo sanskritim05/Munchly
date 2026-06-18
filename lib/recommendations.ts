@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { buildDishReason, resolveDishReason } from "@/lib/recommendation-reasons";
 import { getSignatureDish, isGenericDishName } from "@/lib/signature-dishes";
 import { getUSRestaurants } from "@/lib/us-restaurants";
 
@@ -54,6 +55,7 @@ function buildAvoidLists(history: PlateHistoryItem[]) {
 function sanitizeRecommendations(
   recs: FoodRecommendation[],
   history: PlateHistoryItem[],
+  locationLabel: string | null,
   limit = RECOMMENDATION_COUNT
 ): FoodRecommendation[] {
   const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
@@ -79,7 +81,11 @@ function sanitizeRecommendations(
 
     seenRestaurants.add(restaurantKey);
     seenDishes.add(dishKey);
-    cleaned.push({ restaurant, dish, reason: reason || "A new pick based on your taste." });
+    cleaned.push({
+      restaurant,
+      dish,
+      reason: resolveDishReason(reason, dish, history, locationLabel),
+    });
 
     if (cleaned.length >= limit) break;
   }
@@ -114,9 +120,7 @@ function fallbackRecommendations(
     recommendations.push({
       restaurant,
       dish,
-      reason: locationLabel
-        ? `Popular near ${locationLabel} and different from what you've posted.`
-        : "A well-known pick that fits your taste profile.",
+      reason: buildDishReason(dish, history, locationLabel),
     });
 
     if (recommendations.length >= RECOMMENDATION_COUNT) break;
@@ -140,7 +144,7 @@ function fillMissingRecommendations(
   }
 
   const fallback = fallbackRecommendations(history, locationLabel).recommendations;
-  const merged = sanitizeRecommendations([...current, ...fallback], history, RECOMMENDATION_COUNT);
+  const merged = sanitizeRecommendations([...current, ...fallback], history, locationLabel, RECOMMENDATION_COUNT);
 
   return merged.slice(0, RECOMMENDATION_COUNT);
 }
@@ -189,7 +193,7 @@ Return ONLY valid JSON, no markdown:
 {
   "taste_summary": string (one short sentence about their taste, not listing their past orders),
   "recommendations": [
-    { "restaurant": string, "dish": string, "reason": string (max 14 words) }
+    { "restaurant": string, "dish": string, "reason": string (exactly 10 or 11 words) }
   ]
 }
 
@@ -204,7 +208,10 @@ Rules:
 - Use real US restaurant chains or widely known restaurant names
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
-- Reasons should explain why this new pick fits their taste, not restate what they already ate`,
+- Each reason must be exactly 10 or 11 words
+- Reasons must explain why this specific dish fits their taste profile
+- Never use generic reasons like "well-known pick" or "fits your taste profile"
+- Reference patterns from their ratings, similar flavors, or nearby picks when relevant`,
         },
         {
           role: "user",
@@ -241,7 +248,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     }));
 
     const recommendations = fillMissingRecommendations(
-      sanitizeRecommendations(raw, history),
+      sanitizeRecommendations(raw, history, locationLabel),
       history,
       locationLabel
     );

@@ -15,6 +15,8 @@ export default function ProfileSettingsPage() {
     username: string;
     bio: string | null;
     avatar_url: string | null;
+    username_changed_at: string | null;
+    display_name_changed_at: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,9 @@ export default function ProfileSettingsPage() {
       const supabase = createBrowserClient();
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, username, bio, avatar_url, onboarding_complete")
+        .select(
+          "display_name, username, bio, avatar_url, onboarding_complete, username_changed_at, display_name_changed_at"
+        )
         .eq("id", user.id)
         .maybeSingle();
 
@@ -48,6 +52,8 @@ export default function ProfileSettingsPage() {
         username: data.username,
         bio: data.bio,
         avatar_url: data.avatar_url,
+        username_changed_at: data.username_changed_at,
+        display_name_changed_at: data.display_name_changed_at,
       });
       setLoading(false);
     }

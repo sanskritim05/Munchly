@@ -80,7 +80,7 @@ export function BrowseFeed() {
 
   if (loading) {
     return (
-      <div className="flex h-feed items-center justify-center px-4">
+      <div className="flex h-full items-center justify-center px-page">
         <p className={feedLoadingClass}>Loading posts...</p>
       </div>
     );
@@ -116,7 +116,7 @@ export function BrowseFeed() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-6 pt-2">
+    <div className="app-container w-full px-page pb-6 pt-2">
       <div className="mb-4 flex items-center justify-between">
         <p className={feedMetaClass}>{plates.length} posts</p>
         <button

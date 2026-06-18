@@ -370,7 +370,7 @@ export function PlateView({
     <>
       <ScoreMilestoneLayer celebration={celebration} onDismiss={dismissCelebration} />
 
-      <div className="mx-auto max-w-lg px-4 pb-page pt-4">
+      <div className="app-container px-page pb-page pt-4">
       {onBack && !isOwner ? (
         <button
           type="button"
