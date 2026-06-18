@@ -43,7 +43,10 @@ export async function PATCH(request: Request) {
   const displayNameChanging = (current.display_name ?? "").trim() !== display_name;
 
   if (usernameChanging) {
-    const usernameError = getUsernameError(username);
+    const usernameError = getUsernameError(username, {
+      existingUsername: current.username,
+      allowBrandUsername: true,
+    });
     if (usernameError) {
       return NextResponse.json({ error: usernameError }, { status: 400 });
     }

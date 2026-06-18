@@ -58,7 +58,10 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
 
     const cleanUsername = normalizeUsername(username);
     if (cleanUsername !== initial.username) {
-      const usernameError = getUsernameError(cleanUsername);
+      const usernameError = getUsernameError(cleanUsername, {
+        existingUsername: initial.username,
+        allowBrandUsername: true,
+      });
       if (usernameError) {
         setError(usernameError);
         return;

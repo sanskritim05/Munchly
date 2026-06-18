@@ -31,6 +31,13 @@ const BRAND_AFFIXES = [
   "join",
 ];
 
+export interface UsernameValidationOptions {
+  /** Skip reserved checks when the user is keeping their current username. */
+  existingUsername?: string | null;
+  /** Allow the exact brand username (e.g. platecheck) for existing accounts. */
+  allowBrandUsername?: boolean;
+}
+
 export function normalizeUsername(value: string) {
   return value.trim().toLowerCase().replace(/^@/, "");
 }
@@ -52,13 +59,17 @@ function compactUsername(value: string) {
   return leetDecode(normalizeUsername(value).replace(/_/g, ""));
 }
 
+export function isExactBrandUsername(value: string) {
+  return compactUsername(value) === RESERVED_BRAND;
+}
+
 export function isReservedUsername(value: string) {
   const compact = compactUsername(value);
   if (!compact) return false;
 
-  if (compact === RESERVED_BRAND) return true;
-
-  if (compact.startsWith(RESERVED_BRAND)) return true;
+  if (compact.startsWith(RESERVED_BRAND) && compact.length > RESERVED_BRAND.length) {
+    return true;
+  }
 
   if (compact.endsWith(RESERVED_BRAND) && compact.length > RESERVED_BRAND.length) {
     const prefix = compact.slice(0, -RESERVED_BRAND.length);
@@ -70,19 +81,29 @@ export function isReservedUsername(value: string) {
   return false;
 }
 
-export function isValidUsername(value: string) {
-  const normalized = normalizeUsername(value);
-  return USERNAME_RE.test(normalized) && !isReservedUsername(normalized);
+export function isValidUsername(value: string, options?: UsernameValidationOptions) {
+  return getUsernameError(value, options) === null;
 }
 
-export function getUsernameError(value: string) {
+export function getUsernameError(value: string, options?: UsernameValidationOptions) {
   const normalized = normalizeUsername(value);
+  const existing = options?.existingUsername
+    ? normalizeUsername(options.existingUsername)
+    : null;
 
   if (!USERNAME_RE.test(normalized)) {
     return "Username must be 3-20 characters: letters, numbers, underscores";
   }
 
+  if (existing && normalized === existing) {
+    return null;
+  }
+
   if (isReservedUsername(normalized)) {
+    return RESERVED_USERNAME_MESSAGE;
+  }
+
+  if (isExactBrandUsername(normalized) && !options?.allowBrandUsername) {
     return RESERVED_USERNAME_MESSAGE;
   }
 
