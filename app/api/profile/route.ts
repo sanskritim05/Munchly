@@ -5,7 +5,7 @@ import {
   canChangeIdentity,
   identityChangeError,
 } from "@/lib/profile-identity";
-import { getUsernameError, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername, USERNAME_RE } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   updateAuthUsernameEmail,
@@ -27,11 +27,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  const usernameError = getUsernameError(username);
-  if (usernameError) {
-    return NextResponse.json({ error: usernameError }, { status: 400 });
-  }
-
   const supabase = createAdminClient();
 
   const { data: current, error: currentError } = await supabase
@@ -46,6 +41,18 @@ export async function PATCH(request: Request) {
 
   const usernameChanging = current.username !== username;
   const displayNameChanging = (current.display_name ?? "").trim() !== display_name;
+
+  if (usernameChanging) {
+    const usernameError = getUsernameError(username);
+    if (usernameError) {
+      return NextResponse.json({ error: usernameError }, { status: 400 });
+    }
+  } else if (!USERNAME_RE.test(username)) {
+    return NextResponse.json(
+      { error: "Username must be 3-20 characters: letters, numbers, underscores" },
+      { status: 400 }
+    );
+  }
 
   if (usernameChanging) {
     const error = identityChangeError("username", current.username_changed_at);

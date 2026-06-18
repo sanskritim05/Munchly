@@ -12,7 +12,7 @@ import {
   canChangeIdentity,
   formatIdentityUnlockDate,
 } from "@/lib/profile-identity";
-import { getUsernameError, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername, USERNAME_RE } from "@/lib/username";
 
 interface ProfileData {
   display_name: string | null;
@@ -57,9 +57,14 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
     }
 
     const cleanUsername = normalizeUsername(username);
-    const usernameError = getUsernameError(cleanUsername);
-    if (usernameError) {
-      setError(usernameError);
+    if (cleanUsername !== initial.username) {
+      const usernameError = getUsernameError(cleanUsername);
+      if (usernameError) {
+        setError(usernameError);
+        return;
+      }
+    } else if (!USERNAME_RE.test(cleanUsername)) {
+      setError("Username must be 3-20 characters: letters, numbers, underscores");
       return;
     }
 

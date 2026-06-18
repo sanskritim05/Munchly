@@ -7,7 +7,7 @@ import {
   syncAuthEmailForUsername,
   usernameAuthEmail,
 } from "@/lib/username-auth";
-import { isValidUsername, normalizeUsername } from "@/lib/username";
+import { normalizeUsername, USERNAME_RE } from "@/lib/username";
 
 export async function POST(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const username = normalizeUsername(body.username ?? "");
   const password = body.password ?? "";
 
-  if (!isValidUsername(username)) {
+  if (!USERNAME_RE.test(username)) {
     return NextResponse.json({ error: "Enter a valid username" }, { status: 400 });
   }
 

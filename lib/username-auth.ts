@@ -86,20 +86,31 @@ export async function repairUsernameAuthLogin(
   username: string,
   password: string
 ) {
-  const email = usernameAuthEmail(username);
+  const normalized = normalizeUsername(username);
 
   const { data: profile } = await admin
     .from("profiles")
     .select("id, username")
-    .eq("username", username)
+    .eq("username", normalized)
     .maybeSingle();
 
   if (!profile) return null;
 
+  const targetEmail = usernameAuthEmail(profile.username);
   const { data: authData } = await admin.auth.admin.getUserById(profile.id);
   const currentEmail = authData?.user?.email;
 
-  if (!currentEmail || currentEmail === email) {
+  const { data: targetSignIn, error: targetError } =
+    await signInClient.auth.signInWithPassword({
+      email: targetEmail,
+      password,
+    });
+
+  if (!targetError && targetSignIn.session) {
+    return targetSignIn.session;
+  }
+
+  if (!currentEmail || currentEmail === targetEmail) {
     return null;
   }
 
@@ -119,7 +130,7 @@ export async function repairUsernameAuthLogin(
 
   const { data: refreshedSignIn, error: refreshedError } =
     await signInClient.auth.signInWithPassword({
-      email,
+      email: targetEmail,
       password,
     });
 
