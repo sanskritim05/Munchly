@@ -83,7 +83,9 @@ function sanitizeRecommendations(
   const pastRestaurants = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
   const seenRestaurants = new Set<string>();
   const seenDishes = new Set<string>();
+  const usedReasons = new Set<string>();
   const cleaned: FoodRecommendation[] = [];
+  let pickIndex = 0;
 
   for (const rec of recs) {
     const restaurant = cleanText(rec.restaurant);
@@ -107,8 +109,12 @@ function sanitizeRecommendations(
     cleaned.push({
       restaurant,
       dish,
-      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel),
+      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel, {
+        pickIndex,
+        usedReasons,
+      }),
     });
+    pickIndex += 1;
 
     if (cleaned.length >= limit) break;
   }
@@ -141,6 +147,8 @@ function fallbackRecommendations(
       : "Post plates to build your taste profile.";
 
   const recommendations: FoodRecommendation[] = [];
+  const usedReasons = new Set<string>();
+  let pickIndex = 0;
 
   for (const restaurant of candidates) {
     const restaurantKey = normalizeKey(restaurant);
@@ -154,8 +162,12 @@ function fallbackRecommendations(
     recommendations.push({
       restaurant,
       dish,
-      reason: buildDishReason(dish, restaurant, history, locationLabel),
+      reason: buildDishReason(dish, restaurant, history, locationLabel, {
+        pickIndex,
+        usedReasons,
+      }),
     });
+    pickIndex += 1;
 
     if (recommendations.length >= RECOMMENDATION_COUNT) break;
   }
@@ -268,6 +280,8 @@ Rules:
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
 - Each reason must be at most ${RECOMMENDATION_REASON_MAX_WORDS} words
+- All ${RECOMMENDATION_COUNT} reasons must sound different from each other
+- Use different history dishes, traits, or angles for each reason; never repeat the same opening phrase
 - Reasons must name a concrete link: spice level, protein, texture, cuisine, or cooking style
 - Reference a specific dish from their history when explaining the match
 - Never say "flavor notes", "hit the same", "familiar yet fresh", or "smart next order"

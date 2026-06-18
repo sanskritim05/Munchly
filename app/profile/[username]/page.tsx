@@ -94,12 +94,21 @@ export default async function ProfilePage({
             <div className="relative h-16 w-16 overflow-hidden rounded-xl">
               <Image src={best.image_url} alt="" fill className="object-cover" unoptimized />
             </div>
-            <div>
-              <p className="font-bold">{best.restaurant_name ?? best.dish_name ?? "Plate"}</p>
-              {best.restaurant_name && best.dish_name ? (
-                <p className="text-sm text-gray-400">{best.dish_name}</p>
-              ) : null}
-              <ScoreBadge score={Number(best.score)} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold leading-snug">
+                {best.restaurant_name && best.dish_name ? (
+                  <>
+                    <span>{best.restaurant_name}</span>
+                    <span className="text-gray-400"> · </span>
+                    <span>{best.dish_name}</span>
+                  </>
+                ) : (
+                  best.restaurant_name ?? best.dish_name ?? "Plate"
+                )}
+              </p>
+              <div className="mt-2">
+                <ScoreBadge score={Number(best.score)} size="sm" />
+              </div>
             </div>
           </div>
         </Link>
