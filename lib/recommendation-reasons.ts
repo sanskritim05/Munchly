@@ -36,6 +36,12 @@ const GENERIC_REASON_PATTERNS = [
   /offers a different comfort-food angle/i,
   /adds a different treat/i,
   /brings another indulgent option/i,
+  /tries sweeter food/i,
+  /tries hearty food/i,
+  /tries Asian-leaning food/i,
+  /tries lighter food/i,
+  /tries breakfast food/i,
+  /contrasts nicely with your/i,
 ];
 
 const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
@@ -45,12 +51,12 @@ const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
   { trait: "kabob", pattern: /\b(kabob|kabab|kebab|skewer|shawarma|gyro|tikka|tandoori)\b/i },
   { trait: "spicy", pattern: /\b(spicy|hot|jalape|buffalo|peri|cajun|sriracha|habanero|chipotle|chili)\b/i },
   { trait: "smoky", pattern: /\b(smoky|smoke|bbq|barbecue|grilled|charred|bourbon|ribeye|steak)\b/i },
-  { trait: "creamy", pattern: /\b(creamy|alfredo|cheese|queso|mac and cheese|butter|custard|carbonara)\b/i },
+  { trait: "creamy", pattern: /\b(creamy|alfredo|cheese|queso|mac and cheese|butter|custard|carbonara|pesto|vodka sauce|gnocchi|risotto)\b/i },
   { trait: "tangy", pattern: /\b(tangy|yogurt|lemon|citrus|vinegar|tomato|salsa|pickle|mojo)\b/i },
   { trait: "crispy", pattern: /\b(crispy|crunchy|fried|crisp|tenders|nuggets|wings|orange chicken)\b/i },
   { trait: "sweet", pattern: /\b(sweet|honey|caramel|maple|glazed|brown sugar|teriyaki|orange)\b/i },
   { trait: "bowl", pattern: /\b(bowl|burrito bowl|harvest|greens|grain|tropichop)\b/i },
-  { trait: "pasta", pattern: /\b(pasta|spaghetti|lasagna|noodle|ramen|fettuccine)\b/i },
+  { trait: "pasta", pattern: /\b(pasta|spaghetti|lasagna|noodle|ramen|fettuccine|gnocchi|rigatoni|penne|bolognese|marinara|arrabbiata|alfredo)\b/i },
   { trait: "pizza", pattern: /\b(pizza|pepperoni|calzone)\b/i },
   { trait: "seafood", pattern: /\b(fish|shrimp|salmon|tuna|crab|lobster|sushi|poke)\b/i },
   { trait: "chicken", pattern: /\b(chicken|poultry|wings)\b/i },
@@ -321,7 +327,10 @@ function inferFoodStyle(...parts: (string | null | undefined)[]) {
   if (/donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana|pastry|pie|frosting|sundae|ice cream/.test(text)) {
     return "sweet" as const;
   }
-  if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|noodle|dan dan/.test(text)) {
+  if (/pasta|spaghetti|fettuccine|gnocchi|rigatoni|penne|vodka|pesto|carbonara|bolognese|marinara|arrabbiata|alfredo|lasagna/.test(text)) {
+    return "comfort" as const;
+  }
+  if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodle/.test(text)) {
     return "asian" as const;
   }
   return "comfort" as const;
@@ -413,11 +422,106 @@ export function scorePickForHistory(
   restaurant: string
 ) {
   if (history.length === 0) return 0;
-  return Math.max(
-    ...history.map((item) =>
-      scoreTasteConnection(item.dish_name, item.restaurant_name, dish, restaurant)
-    )
-  );
+  if (!shouldRecommendPick(history, dish, restaurant)) return -100;
+
+  const recentCount = Math.min(history.length, 6);
+  let score = 0;
+
+  for (let i = 0; i < recentCount; i++) {
+    const post = history[i];
+    const connection = scoreTasteConnection(
+      post.dish_name,
+      post.restaurant_name,
+      dish,
+      restaurant
+    );
+    const weight = recentCount - i;
+    score += connection * weight;
+  }
+
+  return score;
+}
+
+const TASTE_PROFILE_LOOKBACK = 6;
+
+export interface TasteProfile {
+  recentPosts: PlateHistoryItem[];
+  primaryStyle: FoodStyle;
+  isPrimarilySavory: boolean;
+  isPrimarilyDessert: boolean;
+}
+
+export function buildTasteProfile(history: PlateHistoryItem[]): TasteProfile {
+  const recentPosts = history.slice(0, TASTE_PROFILE_LOOKBACK);
+  let savoryWeight = 0;
+  let dessertWeight = 0;
+  const styleWeights = new Map<FoodStyle, number>();
+
+  recentPosts.forEach((post, index) => {
+    const weight = TASTE_PROFILE_LOOKBACK - index;
+    const style = inferFoodStyle(post.dish_name, post.restaurant_name);
+    styleWeights.set(style, (styleWeights.get(style) ?? 0) + weight);
+
+    if (isDessertLike(post.dish_name, post.restaurant_name)) {
+      dessertWeight += weight;
+    } else {
+      savoryWeight += weight;
+    }
+  });
+
+  const primaryStyle =
+    Array.from(styleWeights.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "comfort";
+  const total = savoryWeight + dessertWeight || 1;
+
+  return {
+    recentPosts,
+    primaryStyle,
+    isPrimarilySavory: savoryWeight / total >= 0.55,
+    isPrimarilyDessert: dessertWeight / total >= 0.55,
+  };
+}
+
+export function shouldRecommendPick(
+  history: PlateHistoryItem[],
+  dish: string,
+  restaurant: string
+) {
+  const profile = buildTasteProfile(history);
+  const dishDessert = isDessertLike(dish, restaurant);
+
+  if (profile.isPrimarilySavory && dishDessert) {
+    return false;
+  }
+
+  return true;
+}
+
+function pickAnchorPost(history: PlateHistoryItem[], dish: string, restaurant: string) {
+  if (history.length === 0) {
+    return { dish_name: "your recent posts", restaurant_name: "", score: 0 };
+  }
+
+  let best = history[0];
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < Math.min(history.length, 8); i++) {
+    const post = history[i];
+    const connection = scoreTasteConnection(
+      post.dish_name,
+      post.restaurant_name,
+      dish,
+      restaurant
+    );
+    const recencyBonus = (8 - i) * 2;
+    const total = connection + recencyBonus;
+
+    if (total > bestScore) {
+      bestScore = total;
+      best = post;
+    }
+  }
+
+  return best;
 }
 
 function hasMeaningfulConnection(
@@ -558,7 +662,7 @@ export function buildDishReason(
   const pickIndex = options?.pickIndex ?? 0;
   const usedReasons = options?.usedReasons ?? new Set<string>();
   const posts = [...history];
-  const anchor = posts[pickIndex % posts.length] ?? posts[0];
+  const anchor = pickAnchorPost(posts, dish, restaurant);
   const anchorDish = anchor?.dish_name ?? "your recent posts";
   const anchorRestaurant = anchor?.restaurant_name ?? "";
 
@@ -631,7 +735,7 @@ export function buildDishReason(
         usedReasons
       );
       if (styleReason) candidates.push(styleReason);
-    } else {
+    } else if (anchorStyle !== dishStyle && !anchorDessert && !dishDessert) {
       candidates.push(
         `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`,
         `You usually post ${STYLE_WORDS[anchorStyle]} plates like ${dishLabel(anchorDish)}; ${dishLabel(dish)} switches lanes.`
@@ -651,7 +755,11 @@ export function buildDishReason(
       `You post sweets like ${dishLabel(anchorDish)}; ${dishLabel(dish)} is a savory change of pace.`,
       `Not a dessert match: ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a different kind of order.`
     );
-  } else {
+  } else if (!anchorDessert && dishDessert) {
+    candidates.push(
+      `Your recent posts like ${dishLabel(anchorDish)} skew savory; ${dishLabel(dish)} is an off-profile sweet pick.`
+    );
+  } else if (!dishDessert) {
     const styleBuilders = STYLE_REASONS[anchorStyle] ?? STYLE_REASONS.comfort;
     const styleReason = chooseUniqueReason(
       styleBuilders,
@@ -679,7 +787,7 @@ export function buildDishReason(
 
   if (connected) {
     candidates.push(
-      `${dishLabel(dish)} at ${restaurantLabel(restaurant)} contrasts nicely with your ${dishLabel(anchorDish)} post.`
+      `${dishLabel(dish)} at ${restaurantLabel(restaurant)} pairs well with your ${dishLabel(anchorDish)} post.`
     );
   }
 

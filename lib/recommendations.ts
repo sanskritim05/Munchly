@@ -5,6 +5,7 @@ import {
   RECOMMENDATION_REASON_MIN_WORDS,
   resolveDishReason,
   scorePickForHistory,
+  shouldRecommendPick,
 } from "@/lib/recommendation-reasons";
 import { getSignatureDish, isGenericDishName } from "@/lib/signature-dishes";
 import { getUSRestaurants } from "@/lib/us-restaurants";
@@ -161,6 +162,7 @@ function sanitizeRecommendations(
     if (extraExclude?.dishes.has(dishKey)) continue;
     if (seenRestaurants.has(restaurantKey)) continue;
     if (seenDishes.has(dishKey)) continue;
+    if (!shouldRecommendPick(history, dish, restaurant)) continue;
 
     seenRestaurants.add(restaurantKey);
     seenDishes.add(dishKey);
@@ -208,6 +210,7 @@ function fallbackRecommendations(
     const dishKey = normalizeKey(dish);
     if (pastDishes.has(dishKey)) continue;
     if (extraExclude.dishes.has(dishKey)) continue;
+    if (!shouldRecommendPick(history, dish, restaurant)) continue;
 
     recommendations.push({
       restaurant,
@@ -334,6 +337,8 @@ Rules:
 - Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
 - Never claim a posted dish has a trait it does not obviously have
 - Match the course and style of what they post. If they post desserts like donuts, pick bakeries, ice cream, or sweet menu items, not savory bowls or chicken entrees
+- Weight recent posts more heavily than older ones when inferring taste
+- If recent posts are pasta, noodles, or savory Italian dishes, recommend similar hearty spots, not ice cream or cookie shops
 - Do not recommend a savory bowl or entree for a dessert post unless the reason clearly says it is a deliberate savory stretch
 - Never imply a donut or dessert post naturally leads to a chicken bowl, burger, or similar savory dish
 - Bad: "You rated yogurt kabab highly, so this burger should work."
@@ -388,7 +393,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     }
 
     const allWeak = recommendations.every(
-      (rec) => scorePickForHistory(history, rec.dish, rec.restaurant) === 0
+      (rec) => scorePickForHistory(history, rec.dish, rec.restaurant) <= 0
     );
     if (allWeak) {
       return fallbackRecommendations(history, locationLabel, options);
