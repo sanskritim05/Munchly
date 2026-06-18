@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { isRegisteredUser } from "@/lib/auth-user";
 
 export function ProfileFollowButton({ profileUserId }: { profileUserId: string }) {
   const router = useRouter();
@@ -71,7 +72,7 @@ export function ProfileFollowButton({ profileUserId }: { profileUserId: string }
     }
   }
 
-  if (!user || isOwnProfile || loading) {
+  if (!isRegisteredUser(user) || isOwnProfile || loading) {
     return null;
   }
 

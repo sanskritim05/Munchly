@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to comment" }, { status: 401 });
   }
 
   const body = await request.json();

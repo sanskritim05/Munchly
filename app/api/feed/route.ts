@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 async function getFollowingIds(supabase: ReturnType<typeof createAdminClient>, userId: string) {
@@ -13,8 +13,8 @@ async function getFollowingIds(supabase: ReturnType<typeof createAdminClient>, u
 
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to rate plates" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);

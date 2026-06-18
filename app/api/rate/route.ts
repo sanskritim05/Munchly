@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { recalculateUserAverage } from "@/lib/profile-stats";
 import { calculateScore } from "@/lib/scores";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to rate plates" }, { status: 401 });
   }
 
   const { plate_id, rating } = await request.json();

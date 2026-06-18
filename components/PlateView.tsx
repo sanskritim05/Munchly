@@ -11,6 +11,7 @@ import { ScoreBadge } from "@/components/ScoreBadge";
 import { ScoreMilestoneLayer } from "@/components/ScoreMilestoneOverlay";
 import { PlatePresenceIndicator } from "@/components/PlatePresenceIndicator";
 import { useAuth } from "@/components/AuthProvider";
+import { isRegisteredUser } from "@/lib/auth-user";
 import {
   getNewMilestoneCelebration,
   markMilestonesShown,
@@ -57,6 +58,7 @@ export function PlateView({
 }) {
   const router = useRouter();
   const { user, getAccessToken } = useAuth();
+  const canInteract = isRegisteredUser(user);
   const [plate, setPlate] = useState<Plate | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState("");
@@ -69,7 +71,7 @@ export function PlateView({
   const prevScoreRef = useRef<number | null>(null);
   const skipInitialScoreRef = useRef(true);
 
-  const isOwner = Boolean(user && plate && user.id === plate.user_id);
+  const isOwner = Boolean(canInteract && user && plate && user.id === plate.user_id);
 
   useEffect(() => {
     skipInitialScoreRef.current = true;
@@ -483,17 +485,17 @@ export function PlateView({
           </button>
         ) : (
           <Link
-            href="/swipe"
+            href={canInteract ? "/swipe" : "/get-started?next=/swipe"}
             className="flex-1 rounded-full border border-border py-3 text-center font-bold"
           >
-            Rate more
+            {canInteract ? "Rate more" : "Sign up to rate"}
           </Link>
         )}
       </div>
 
       <section className="mt-8">
         <h2 className="mb-3 font-bold">Comments</h2>
-        {user ? (
+        {canInteract ? (
           <form onSubmit={submitComment} className="mb-4 flex gap-2">
             <input
               value={comment}
@@ -505,7 +507,14 @@ export function PlateView({
               Post
             </button>
           </form>
-        ) : null}
+        ) : (
+          <p className="mb-4 text-sm text-gray-500">
+            <Link href="/get-started?next=/swipe" className="font-semibold text-hot hover:underline">
+              Create an account
+            </Link>{" "}
+            to comment and rate plates.
+          </p>
+        )}
         <ul className="space-y-3">
           {topLevel.map((c) => (
             <li key={c.id} className="rounded-xl bg-surface p-3 text-sm">

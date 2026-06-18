@@ -12,7 +12,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 
 export function PostPlateForm() {
   const router = useRouter();
-  const { getAccessToken, user, loading: authLoading, signInGuest } = useAuth();
+  const { getAccessToken, user, loading: authLoading } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -37,14 +37,6 @@ export function PostPlateForm() {
       { maximumAge: 600_000, timeout: 8000 }
     );
   }, []);
-
-  useEffect(() => {
-    async function ensureAuth() {
-      if (authLoading) return;
-      if (!getAccessToken()) await signInGuest();
-    }
-    ensureAuth();
-  }, [authLoading, getAccessToken, signInGuest]);
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];

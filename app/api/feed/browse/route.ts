@@ -1,25 +1,25 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("plates")
     .select(
       `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, comment_count, created_at,
        profiles!plates_user_id_fkey (username, avatar_url)`
     )
     .eq("is_active", true)
-    .neq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (isRegisteredAuthUser(user)) {
+    query = query.neq("user_id", user!.id);
+  }
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

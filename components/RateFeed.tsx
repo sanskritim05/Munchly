@@ -17,9 +17,10 @@ import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { getStreak, recordRating } from "@/lib/streak";
 import { track } from "@/lib/analytics";
 import { feedLoadingClass } from "@/lib/feed-ui";
-import { createBrowserClient } from "@/lib/supabase/client";
-import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
+import { FeedSignInPrompt } from "@/components/FeedSignInPrompt";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
+import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
+import { isRegisteredUser } from "@/lib/auth-user";
 
 interface FeedPlate {
   id: string;
@@ -104,7 +105,8 @@ function SwipeCard({
 }
 
 export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" }) {
-  const { getAccessToken, signInGuest, loading: authLoading } = useAuth();
+  const { user, getAccessToken, loading: authLoading } = useAuth();
+  const registered = isRegisteredUser(user);
   const [plates, setPlates] = useState<FeedPlate[]>([]);
   const [followingCount, setFollowingCount] = useState(0);
   const [followingHasPosts, setFollowingHasPosts] = useState(false);
@@ -113,7 +115,6 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [authError, setAuthError] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
 
   const x = useMotionValue(0);
@@ -148,23 +149,15 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     async function init() {
       if (authLoading) return;
 
-      let token = getAccessToken();
+      if (!registered) {
+        setLoading(false);
+        return;
+      }
 
+      const token = getAccessToken();
       if (!token) {
-        const result = await signInGuest();
-        if (result.error) {
-          setAuthError(result.error);
-          setLoading(false);
-          return;
-        }
-
-        const { data } = await createBrowserClient().auth.getSession();
-        token = data.session?.access_token ?? null;
-        if (!token) {
-          setAuthError("Could not start a guest session. Try again.");
-          setLoading(false);
-          return;
-        }
+        setLoading(false);
+        return;
       }
 
       const s = getStreak();
@@ -173,7 +166,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
       await loadFeed(token);
     }
     init();
-  }, [authLoading, getAccessToken, signInGuest, loadFeed, scope]);
+  }, [authLoading, registered, getAccessToken, loadFeed, scope]);
 
   const current = plates[index];
   const next = plates[index + 1];
@@ -250,34 +243,12 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     await loadFeed();
   }
 
-  if (authError) {
+  if (!authLoading && !registered) {
     return (
-      <FeedViewportEmpty title="Could not connect" description={authError}>
-        <button
-          type="button"
-          onClick={() => {
-            setAuthError("");
-            setLoading(true);
-            signInGuest().then(async (result) => {
-              if (result.error) {
-                setAuthError(result.error);
-                setLoading(false);
-                return;
-              }
-              const { data } = await createBrowserClient().auth.getSession();
-              const token = data.session?.access_token;
-              if (token) await loadFeed(token);
-              else {
-                setAuthError("Could not start a guest session. Try again.");
-                setLoading(false);
-              }
-            });
-          }}
-          className="rounded-full bg-hot px-6 py-3 font-bold"
-        >
-          Try again
-        </button>
-      </FeedViewportEmpty>
+      <FeedSignInPrompt
+        title={scope === "following" ? "Sign in to see Following" : "Sign in to rate plates"}
+        description="Browse posts for free. Create an account to swipe hot or not."
+      />
     );
   }
 

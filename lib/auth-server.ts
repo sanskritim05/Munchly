@@ -1,4 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { User } from "@supabase/supabase-js";
+
+export function isRegisteredAuthUser(user: User | null | undefined): user is User {
+  return Boolean(user && !user.is_anonymous);
+}
 
 export async function getUserFromRequest(request: Request) {
   const authHeader = request.headers.get("authorization");

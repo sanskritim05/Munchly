@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(
@@ -7,8 +7,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to interact" }, { status: 401 });
   }
 
   const supabase = createAdminClient();

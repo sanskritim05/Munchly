@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth-server";
+import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 async function getFollowerCount(supabase: ReturnType<typeof createAdminClient>, userId: string) {
@@ -14,8 +14,8 @@ async function getFollowerCount(supabase: ReturnType<typeof createAdminClient>, 
 
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to follow people" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -41,8 +41,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to follow people" }, { status: 401 });
   }
 
   const body = await request.json();
@@ -105,8 +105,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isRegisteredAuthUser(user)) {
+    return NextResponse.json({ error: "Create an account to follow people" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);

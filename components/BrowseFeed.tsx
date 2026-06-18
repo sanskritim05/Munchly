@@ -8,8 +8,8 @@ import { AppIcon } from "@/components/AppIcon";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { PlateView } from "@/components/PlateView";
+import { isRegisteredUser } from "@/lib/auth-user";
 import { feedLoadingClass, feedMetaClass } from "@/lib/feed-ui";
-import { createBrowserClient } from "@/lib/supabase/client";
 
 interface BrowsePlate {
   id: string;
@@ -24,49 +24,32 @@ interface BrowsePlate {
 }
 
 export function BrowseFeed() {
-  const { getAccessToken, signInGuest, loading: authLoading } = useAuth();
+  const { user, getAccessToken, loading: authLoading } = useAuth();
   const [plates, setPlates] = useState<BrowsePlate[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const registered = isRegisteredUser(user);
 
-  const loadBrowse = useCallback(async (tokenOverride?: string) => {
-    const token = tokenOverride ?? getAccessToken();
-    if (!token) return false;
+  const loadBrowse = useCallback(async () => {
+    const token = getAccessToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
-    const res = await fetch("/api/feed/browse", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch("/api/feed/browse", { headers });
     const data = await res.json();
     setPlates(data.plates ?? []);
     setLoading(false);
     setRefreshing(false);
-    return true;
+    return res.ok;
   }, [getAccessToken]);
 
   useEffect(() => {
-    async function init() {
-      if (authLoading) return;
-
-      let token = getAccessToken();
-      if (!token) {
-        const result = await signInGuest();
-        if (result.error) {
-          setLoading(false);
-          return;
-        }
-        const { data } = await createBrowserClient().auth.getSession();
-        token = data.session?.access_token ?? null;
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-      }
-
-      await loadBrowse(token);
-    }
-    init();
-  }, [authLoading, getAccessToken, signInGuest, loadBrowse]);
+    if (authLoading) return;
+    void loadBrowse();
+  }, [authLoading, loadBrowse]);
 
   if (selectedId) {
     return (
@@ -90,7 +73,7 @@ export function BrowseFeed() {
     return (
       <FeedViewportEmpty
         title="No posts yet"
-        description="When others post plates, you can browse them here and leave comments."
+        description="When others post plates, you can browse them here."
       >
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
@@ -104,12 +87,21 @@ export function BrowseFeed() {
           >
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
-          <Link
-            href="/post"
-            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
-          >
-            Post your plate
-          </Link>
+          {registered ? (
+            <Link
+              href="/post"
+              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+            >
+              Post your plate
+            </Link>
+          ) : (
+            <Link
+              href="/get-started?next=/post"
+              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+            >
+              Get started
+            </Link>
+          )}
         </div>
       </FeedViewportEmpty>
     );
@@ -117,6 +109,16 @@ export function BrowseFeed() {
 
   return (
     <div className="app-container w-full px-page pb-6 pt-2">
+      {!registered ? (
+        <p className="mb-4 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400">
+          Browsing only.{" "}
+          <Link href="/get-started?next=/swipe" className="font-semibold text-hot hover:underline">
+            Create an account
+          </Link>{" "}
+          to rate, comment, and post.
+        </p>
+      ) : null}
+
       <div className="mb-4 flex items-center justify-between">
         <p className={feedMetaClass}>{plates.length} posts</p>
         <button
@@ -181,7 +183,7 @@ export function BrowseFeed() {
                       {plate.comment_count} comment{plate.comment_count === 1 ? "" : "s"}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm font-medium text-hot">View details & comment →</p>
+                  <p className="mt-2 text-sm font-medium text-hot">View details →</p>
                 </div>
               </button>
             </li>

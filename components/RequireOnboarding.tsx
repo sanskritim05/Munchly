@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { isRegisteredUser } from "@/lib/auth-user";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 export function RequireOnboarding({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function check() {
       if (loading) return;
-      if (!user) {
+      if (!isRegisteredUser(user)) {
         router.replace(`/get-started?next=${encodeURIComponent(pathname)}`);
         return;
       }
@@ -32,7 +33,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
     check();
   }, [user, loading, pathname, router]);
 
-  if (loading) {
+  if (loading || !isRegisteredUser(user)) {
     return (
       <div className="flex min-h-page items-center justify-center">
         <p className="text-gray-400">Loading...</p>
