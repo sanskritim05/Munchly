@@ -28,12 +28,20 @@ const GENERIC_REASON_PATTERNS = [
   /is a fresh pick/i,
   /^a well-known pick for/i,
   /^popular near you/i,
+  /is a new spot to try/i,
+  /is a different order/i,
+  /is worth a try/i,
+  /fits what you'?ve been posting/i,
+  /switches up your usual comfort/i,
+  /offers a different comfort-food angle/i,
+  /adds a different treat/i,
+  /brings another indulgent option/i,
 ];
 
 const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
   { trait: "salad", pattern: /\b(salad|papaya salad|greens|slaw|cucumber salad)\b/i },
   { trait: "asian", pattern: /\b(thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodles)\b/i },
-  { trait: "dessert", pattern: /\b(pudding|dessert|cake|cookie|banana pudding|pastry|pie|sweet)\b/i },
+  { trait: "dessert", pattern: /\b(donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana pudding|pastry|pie|frosting|glazed|sundae|ice cream)\b/i },
   { trait: "kabob", pattern: /\b(kabob|kabab|kebab|skewer|shawarma|gyro|tikka|tandoori)\b/i },
   { trait: "spicy", pattern: /\b(spicy|hot|jalape|buffalo|peri|cajun|sriracha|habanero|chipotle|chili)\b/i },
   { trait: "smoky", pattern: /\b(smoky|smoke|bbq|barbecue|grilled|charred|bourbon|ribeye|steak)\b/i },
@@ -310,7 +318,9 @@ function inferFoodStyle(...parts: (string | null | undefined)[]) {
   const text = parts.filter(Boolean).join(" ").toLowerCase();
   if (/salad|papaya salad|greens|slaw|cucumber/.test(text)) return "fresh" as const;
   if (/pancake|waffle|breakfast|eggs|biscuit|brunch|oatmeal/.test(text)) return "breakfast" as const;
-  if (/pudding|dessert|cake|cookie|banana|pastry|pie|sweet/.test(text)) return "sweet" as const;
+  if (/donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana|pastry|pie|frosting|sundae|ice cream/.test(text)) {
+    return "sweet" as const;
+  }
   if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|noodle|dan dan/.test(text)) {
     return "asian" as const;
   }
@@ -349,6 +359,75 @@ const STYLE_REASONS: Record<FoodStyle, ReasonBuilder[]> = {
       `You ordered ${dishLabel(anchor)} before; ${dishLabel(dish)} offers a different comfort-food angle.`,
   ],
 };
+
+function isDessertLike(
+  dish: string,
+  restaurant: string,
+  traits = extractTraits(dish, restaurant),
+  style = inferFoodStyle(dish, restaurant)
+) {
+  return traits.has("dessert") || style === "sweet";
+}
+
+const CONTRAST_REASONS: ReasonBuilder[] = [
+  (anchor, dish, rest) =>
+    `You post sweets like ${dishLabel(anchor)}; ${dishLabel(dish)} at ${restaurantLabel(rest)} is a savory stretch.`,
+  (anchor, dish) =>
+    `Nothing like ${dishLabel(anchor)} on purpose: ${dishLabel(dish)} is a hearty change of pace.`,
+  (anchor, dish, rest) =>
+    `Your ${dishLabel(anchor)} posts skew sweet; ${dishLabel(dish)} at ${restaurantLabel(rest)} switches lanes.`,
+];
+
+export function scoreTasteConnection(
+  anchorDish: string,
+  anchorRestaurant: string,
+  dish: string,
+  restaurant: string
+) {
+  const anchorTraits = extractTraits(anchorDish, anchorRestaurant);
+  const dishTraits = extractTraits(dish, restaurant);
+  const anchorStyle = inferFoodStyle(anchorDish, anchorRestaurant);
+  const dishStyle = inferFoodStyle(dish, restaurant);
+  const anchorDessert = isDessertLike(anchorDish, anchorRestaurant, anchorTraits, anchorStyle);
+  const dishDessert = isDessertLike(dish, restaurant, dishTraits, dishStyle);
+
+  if (anchorDessert && !dishDessert) return 0;
+
+  let score = 0;
+
+  for (const trait of TRAIT_PRIORITY) {
+    if (!anchorTraits.has(trait) || !dishTraits.has(trait)) continue;
+    if (trait === "sweet" && !dishDessert) continue;
+    score += 15;
+  }
+
+  if (anchorStyle === dishStyle) score += 20;
+  if (anchorDessert && dishDessert) score += 25;
+
+  return score;
+}
+
+export function scorePickForHistory(
+  history: PlateHistoryItem[],
+  dish: string,
+  restaurant: string
+) {
+  if (history.length === 0) return 0;
+  return Math.max(
+    ...history.map((item) =>
+      scoreTasteConnection(item.dish_name, item.restaurant_name, dish, restaurant)
+    )
+  );
+}
+
+function hasMeaningfulConnection(
+  anchorDish: string,
+  anchorRestaurant: string,
+  dish: string,
+  restaurant: string
+) {
+  return scoreTasteConnection(anchorDish, anchorRestaurant, dish, restaurant) >= 20;
+}
 
 function extractTraits(...parts: (string | null | undefined)[]) {
   const text = parts.filter(Boolean).join(" ").toLowerCase();
@@ -491,82 +570,118 @@ export function buildDishReason(
   const dishPrimary = anchorPrimary(dishTraits);
   const anchorPrimaryTrait = anchorPrimary(anchorTraits);
 
+  const anchorStyle = inferFoodStyle(anchorDish, anchorRestaurant);
+  const dishStyle = inferFoodStyle(dish, restaurant);
+  const connected = hasMeaningfulConnection(anchorDish, anchorRestaurant, dish, restaurant);
+  const anchorDessert = isDessertLike(anchorDish, anchorRestaurant, anchorTraits, anchorStyle);
+  const dishDessert = isDessertLike(dish, restaurant, dishTraits, dishStyle);
+
   const candidates: string[] = [];
 
-  if (sharedTrait) {
-    const shared = reasonForTrait(
-      sharedTrait,
-      dish,
-      restaurant,
-      anchorDish,
-      pickIndex,
-      usedReasons
-    );
-    if (shared) candidates.push(shared);
-  }
+  if (connected) {
+    if (sharedTrait) {
+      const shared = reasonForTrait(
+        sharedTrait,
+        dish,
+        restaurant,
+        anchorDish,
+        pickIndex,
+        usedReasons
+      );
+      if (shared) candidates.push(shared);
+    }
 
-  if (
-    anchorPrimaryTrait &&
-    dishPrimary &&
-    anchorTraits.has(anchorPrimaryTrait) &&
-    dishTraits.has(dishPrimary)
-  ) {
-    const bridgeBuilders = BRIDGE_REASONS[anchorPrimaryTrait]?.[dishPrimary];
-    if (bridgeBuilders) {
-      const bridge = chooseUniqueReason(
-        bridgeBuilders,
+    if (
+      anchorPrimaryTrait &&
+      dishPrimary &&
+      anchorTraits.has(anchorPrimaryTrait) &&
+      dishTraits.has(dishPrimary)
+    ) {
+      const bridgeBuilders = BRIDGE_REASONS[anchorPrimaryTrait]?.[dishPrimary];
+      if (bridgeBuilders) {
+        const bridge = chooseUniqueReason(
+          bridgeBuilders,
+          anchorDish,
+          dish,
+          restaurant,
+          pickIndex,
+          usedReasons
+        );
+        if (bridge) candidates.push(bridge);
+      }
+    }
+
+    const proteinReason = sameProteinReason(
+      anchorDish,
+      dish,
+      anchorTraits,
+      dishTraits,
+      pickIndex
+    );
+    if (proteinReason) candidates.push(proteinReason);
+
+    if (anchorStyle === dishStyle) {
+      const styleBuilders = STYLE_REASONS[anchorStyle] ?? STYLE_REASONS.comfort;
+      const styleReason = chooseUniqueReason(
+        styleBuilders,
         anchorDish,
         dish,
         restaurant,
         pickIndex,
         usedReasons
       );
-      if (bridge) candidates.push(bridge);
+      if (styleReason) candidates.push(styleReason);
+    } else {
+      candidates.push(
+        `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`,
+        `You usually post ${STYLE_WORDS[anchorStyle]} plates like ${dishLabel(anchorDish)}; ${dishLabel(dish)} switches lanes.`
+      );
+    }
+  } else if (anchorDessert && !dishDessert) {
+    const contrast = chooseUniqueReason(
+      CONTRAST_REASONS,
+      anchorDish,
+      dish,
+      restaurant,
+      pickIndex,
+      usedReasons
+    );
+    if (contrast) candidates.push(contrast);
+    candidates.push(
+      `You post sweets like ${dishLabel(anchorDish)}; ${dishLabel(dish)} is a savory change of pace.`,
+      `Not a dessert match: ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a different kind of order.`
+    );
+  } else {
+    const styleBuilders = STYLE_REASONS[anchorStyle] ?? STYLE_REASONS.comfort;
+    const styleReason = chooseUniqueReason(
+      styleBuilders,
+      anchorDish,
+      dish,
+      restaurant,
+      pickIndex,
+      usedReasons
+    );
+    if (styleReason) candidates.push(styleReason);
+
+    if (anchorStyle !== dishStyle) {
+      candidates.push(
+        `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`
+      );
     }
   }
 
-  const proteinReason = sameProteinReason(
-    anchorDish,
-    dish,
-    anchorTraits,
-    dishTraits,
-    pickIndex
-  );
-  if (proteinReason) candidates.push(proteinReason);
-
-  const anchorStyle = inferFoodStyle(anchorDish, anchorRestaurant);
-  const dishStyle = inferFoodStyle(dish, restaurant);
-  const styleKey = anchorStyle === dishStyle ? anchorStyle : anchorStyle;
-  const styleBuilders = STYLE_REASONS[styleKey] ?? STYLE_REASONS.comfort;
-  const styleReason = chooseUniqueReason(
-    styleBuilders,
-    anchorDish,
-    dish,
-    restaurant,
-    pickIndex,
-    usedReasons
-  );
-  if (styleReason) candidates.push(styleReason);
-
-  if (anchorStyle !== dishStyle) {
-    candidates.push(
-      `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`,
-      `You usually post ${STYLE_WORDS[anchorStyle]} plates like ${dishLabel(anchorDish)}; ${dishLabel(dish)} switches lanes.`
-    );
-  }
-
   const location = locationLabel?.split(",")[0]?.trim();
-  if (location) {
+  if (location && connected) {
     candidates.push(
       `Near ${location}, ${dishLabel(dish)} at ${restaurantLabel(restaurant)} fits what you've been posting.`
     );
   }
 
-  candidates.push(
-    `You posted ${dishLabel(anchorDish)}; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a new spot to try.`,
-    `Since you ordered ${dishLabel(anchorDish)}, ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a different order.`,
-    `${dishLabel(dish)} at ${restaurantLabel(restaurant)} contrasts nicely with your ${dishLabel(anchorDish)} post.`
-  );
+  if (connected) {
+    candidates.push(
+      `${dishLabel(dish)} at ${restaurantLabel(restaurant)} contrasts nicely with your ${dishLabel(anchorDish)} post.`
+    );
+  }
 
   for (const reason of candidates) {
     const fitted = fitWordCount(reason, RECOMMENDATION_REASON_MAX_WORDS);
@@ -576,7 +691,9 @@ export function buildDishReason(
   }
 
   const fallback = fitWordCount(
-    `You posted ${dishLabel(anchorDish)}; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is worth a try.`,
+    anchorDessert && !dishDessert
+      ? `You post sweets like ${dishLabel(anchorDish)}; ${dishLabel(dish)} is a savory change of pace.`
+      : `You posted ${dishLabel(anchorDish)}; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} lines up with that.`,
     RECOMMENDATION_REASON_MAX_WORDS
   );
   usedReasons.add(reasonSignature(fallback));

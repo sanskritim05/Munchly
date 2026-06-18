@@ -4,6 +4,7 @@ import {
   RECOMMENDATION_REASON_MAX_WORDS,
   RECOMMENDATION_REASON_MIN_WORDS,
   resolveDishReason,
+  scorePickForHistory,
 } from "@/lib/recommendation-reasons";
 import { getSignatureDish, isGenericDishName } from "@/lib/signature-dishes";
 import { getUSRestaurants } from "@/lib/us-restaurants";
@@ -97,6 +98,27 @@ function buildAvoidLists(history: PlateHistoryItem[]) {
   return { dishes, restaurants };
 }
 
+function orderRestaurantsForHistory(
+  restaurants: string[],
+  history: PlateHistoryItem[],
+  refresh?: boolean
+) {
+  const scored = restaurants.map((restaurant) => ({
+    restaurant,
+    score: scorePickForHistory(history, getSignatureDish(restaurant), restaurant),
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+
+  if (!refresh) {
+    return scored.map((item) => item.restaurant);
+  }
+
+  const strong = scored.filter((item) => item.score >= 20);
+  const weak = scored.filter((item) => item.score < 20);
+  return [...shuffle(strong), ...shuffle(weak)].map((item) => item.restaurant);
+}
+
 function sanitizeRecommendations(
   recs: FoodRecommendation[],
   history: PlateHistoryItem[],
@@ -112,7 +134,18 @@ function sanitizeRecommendations(
   const cleaned: FoodRecommendation[] = [];
   let pickIndex = 0;
 
-  for (const rec of recs) {
+  const ranked = [...recs].sort((a, b) => {
+    const restaurantA = cleanText(a.restaurant);
+    const restaurantB = cleanText(b.restaurant);
+    const dishA = resolveDishName(restaurantA, cleanText(a.dish));
+    const dishB = resolveDishName(restaurantB, cleanText(b.dish));
+    return (
+      scorePickForHistory(history, dishB, restaurantB) -
+      scorePickForHistory(history, dishA, restaurantA)
+    );
+  });
+
+  for (const rec of ranked) {
     const restaurant = cleanText(rec.restaurant);
     const dish = resolveDishName(restaurant, rec.dish);
     const reason = cleanText(rec.reason);
@@ -155,7 +188,11 @@ function fallbackRecommendations(
   const visited = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
   const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
   const extraExclude = buildExtraExclude(options);
-  let candidates = shuffle(getUSRestaurants().filter((r) => !visited.has(normalizeKey(r))));
+  const candidates = orderRestaurantsForHistory(
+    getUSRestaurants().filter((r) => !visited.has(normalizeKey(r))),
+    history,
+    options?.refresh
+  );
 
   const taste_summary = buildTasteSummary(history);
 
@@ -296,9 +333,13 @@ Rules:
 - All ${RECOMMENDATION_COUNT} reasons must sound different from each other
 - Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
 - Never claim a posted dish has a trait it does not obviously have
+- Match the course and style of what they post. If they post desserts like donuts, pick bakeries, ice cream, or sweet menu items, not savory bowls or chicken entrees
+- Do not recommend a savory bowl or entree for a dessert post unless the reason clearly says it is a deliberate savory stretch
+- Never imply a donut or dessert post naturally leads to a chicken bowl, burger, or similar savory dish
 - Bad: "You rated yogurt kabab highly, so this burger should work."
+- Bad: "You posted donuts; this harissa chicken bowl is a new spot to try."
 - Good: "You posted yogurt kabab; this citrus-marinated chicken keeps that bright flavor going."
-- Good: "Noodles with spicy sauce in your posts point toward this bold bowl."`,
+- Good: "You post donuts; try a classic cinnamon roll at Cinnabon for another sweet fix."`,
         },
         {
           role: "user",
@@ -343,6 +384,13 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     );
 
     if (recommendations.length === 0) {
+      return fallbackRecommendations(history, locationLabel, options);
+    }
+
+    const allWeak = recommendations.every(
+      (rec) => scorePickForHistory(history, rec.dish, rec.restaurant) === 0
+    );
+    if (allWeak) {
       return fallbackRecommendations(history, locationLabel, options);
     }
 

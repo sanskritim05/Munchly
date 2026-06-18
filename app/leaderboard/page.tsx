@@ -3,48 +3,14 @@ import Link from "next/link";
 import { AppIcon } from "@/components/AppIcon";
 import { AnalyticsOnce } from "@/components/AnalyticsOnce";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { fetchWeeklyLeaderboard } from "@/lib/leaderboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-interface LeaderboardEntry {
-  plateId: string;
-  rank: number;
-  score: number;
-  imageUrl: string | null;
-  dishName: string | null;
-  username: string;
-}
-
 export default async function LeaderboardPage() {
   const supabase = createAdminClient();
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-  const { data: weekly } = await supabase
-    .from("leaderboard_weekly")
-    .select("rank, score, plate_id, plates(image_url, dish_name, is_active), profiles(username)")
-    .eq("week_start", weekStart.toISOString().slice(0, 10))
-    .order("rank", { ascending: true })
-    .limit(10);
-
-  const entries: LeaderboardEntry[] = (weekly ?? [])
-    .map((row) => {
-      const plate = Array.isArray(row.plates) ? row.plates[0] : row.plates;
-      const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-
-      if (!plate?.is_active) return null;
-
-      return {
-        plateId: row.plate_id,
-        rank: row.rank,
-        score: Number(row.score),
-        imageUrl: plate.image_url ?? null,
-        dishName: plate.dish_name ?? null,
-        username: profile?.username ?? "foodie",
-      };
-    })
-    .filter((entry): entry is LeaderboardEntry => entry !== null);
+  const entries = await fetchWeeklyLeaderboard(supabase);
 
   return (
     <div className="app-container px-page pb-page pt-4 sm:pt-6">
@@ -52,6 +18,9 @@ export default async function LeaderboardPage() {
       <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
         This Week&apos;s Hottest Plates <AppIcon kind="trophy" size={32} />
       </h1>
+      <p className="mt-2 text-sm text-gray-500">
+        Top plates from the last 7 days, ranked by score.
+      </p>
 
       <ul className="mt-6 space-y-3">
         {entries.length === 0 ? (
