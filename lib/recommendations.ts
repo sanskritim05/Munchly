@@ -64,6 +64,31 @@ function resolveDishName(restaurant: string, dish: string) {
   return cleaned;
 }
 
+function buildTasteSummary(history: PlateHistoryItem[]) {
+  const names = history
+    .slice(0, 3)
+    .map((item) => item.dish_name.trim())
+    .filter(Boolean);
+
+  if (names.length === 0) {
+    return "Post a few plates to unlock personalized picks.";
+  }
+
+  if (names.length === 1) {
+    return `Based on ${names[0]}, here are new restaurants and dishes to try.`;
+  }
+
+  return `Based on plates you've posted like ${names.slice(0, 2).join(" and ")}, here are new spots to try.`;
+}
+
+function sanitizeTasteSummary(summary: string | undefined, history: PlateHistoryItem[]) {
+  const cleaned = cleanText(summary || "");
+  if (!cleaned || /rated|you seem to like|score/i.test(cleaned)) {
+    return buildTasteSummary(history);
+  }
+  return cleaned;
+}
+
 function buildAvoidLists(history: PlateHistoryItem[]) {
   const dishes = Array.from(new Set(history.map((h) => h.dish_name.trim()).filter(Boolean)));
   const restaurants = Array.from(
@@ -136,15 +161,7 @@ function fallbackRecommendations(
     candidates = shuffle(candidates);
   }
 
-  const topDishes = history
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3)
-    .map((h) => h.dish_name);
-
-  const taste_summary =
-    history.length > 0
-      ? `You seem to like ${topDishes.slice(0, 2).join(" and ")}. Here are new spots to try.`
-      : "Post plates to build your taste profile.";
+  const taste_summary = buildTasteSummary(history);
 
   const recommendations: FoodRecommendation[] = [];
   const usedReasons = new Set<string>();
@@ -240,10 +257,7 @@ Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.jo
     : "";
 
   const historyText = history
-    .map(
-      (h) =>
-        `- ${h.dish_name} at ${h.restaurant_name} (score ${h.score.toFixed(1)})`
-    )
+    .map((h) => `- ${h.dish_name} at ${h.restaurant_name} (posted by user)`)
     .join("\n");
 
   const mode = locationLabel ? "nearby" : "taste";
@@ -262,7 +276,7 @@ Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.jo
           content: `You are a food recommendation assistant for PlateCheck.
 Return ONLY valid JSON, no markdown:
 {
-  "taste_summary": string (one short sentence about their taste, not listing their past orders),
+  "taste_summary": string (one short sentence about what they post, not ratings),
   "recommendations": [
     { "restaurant": string, "dish": string, "reason": string (max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
   ]
@@ -270,6 +284,9 @@ Return ONLY valid JSON, no markdown:
 
 Rules:
 - Give exactly ${RECOMMENDATION_COUNT} recommendations
+- The user has POSTED food photos with what they ordered. They have NOT personally rated anything.
+- Plate scores in history are community ratings on their posts, NOT the user's own ratings. Never mention scores or ratings.
+- Use language like "posted", "ordered", "shared" — never "rated", "scored", "loved highly", or "you seem to like"
 - Each recommendation MUST include both a restaurant and a specific menu item to order there
 - Recommend NEW restaurants the user has NOT visited before
 - Recommend NEW dishes the user has NOT posted before
@@ -281,13 +298,11 @@ Rules:
 - Plain English, no emojis, no em dashes
 - Each reason must be at most ${RECOMMENDATION_REASON_MAX_WORDS} words
 - All ${RECOMMENDATION_COUNT} reasons must sound different from each other
-- Use different history dishes, traits, or angles for each reason; never repeat the same opening phrase
-- Reasons must name a concrete link: spice level, protein, texture, cuisine, or cooking style
-- Reference a specific dish from their history when explaining the match
-- Never say "flavor notes", "hit the same", "familiar yet fresh", or "smart next order"
-- Bad: "You loved Yogurt Kabab, so Bourbon Street should hit the same flavor notes."
-- Good: "Your spiced grilled kabobs suggest this Cajun steak's bold char will appeal."
-- Good: "You rate tangy yogurt-marinated meats high; try this blackened Cajun ribeye next."`,
+- Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
+- Never claim a posted dish has a trait it does not obviously have
+- Bad: "You rated yogurt kabab highly, so this burger should work."
+- Good: "You posted yogurt kabab; this citrus-marinated chicken keeps that bright flavor going."
+- Good: "Noodles with spicy sauce in your posts point toward this bold bowl."`,
         },
         {
           role: "user",
@@ -337,9 +352,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
 
     return {
       mode,
-      taste_summary: cleanText(
-        parsed.taste_summary || "New picks based on flavors you seem to enjoy."
-      ),
+      taste_summary: sanitizeTasteSummary(parsed.taste_summary, history),
       location_label: locationLabel,
       recommendations,
     };

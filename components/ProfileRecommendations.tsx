@@ -140,7 +140,7 @@ export function ProfileRecommendations({
           </h2>
           {plateCount > 0 ? (
             <p className="mt-1 text-sm text-gray-400">
-              Three new restaurants and dishes to try based on your taste.
+              Three new restaurants and dishes to try based on what you&apos;ve posted.
             </p>
           ) : null}
         </div>
@@ -185,7 +185,7 @@ export function ProfileRecommendations({
           <p className="mt-1 text-xs text-gray-500">
             {data.mode === "nearby" && data.location_label
               ? `Exploring near ${data.location_label}`
-              : "Matched to your taste"}
+              : "Based on what you've posted"}
           </p>
 
           <ul className="mt-4 space-y-3">
