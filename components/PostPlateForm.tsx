@@ -9,6 +9,13 @@ import { ImageCropModal } from "@/components/ImageCropModal";
 import { RestaurantAutocomplete } from "@/components/RestaurantAutocomplete";
 import { useAuth } from "@/components/AuthProvider";
 import { track } from "@/lib/analytics";
+import {
+  dailyPlateLimitMessage,
+  getLocalDayStartIso,
+  getUserTimezone,
+  hasUnlimitedPlates,
+  isAtDailyPlateLimit,
+} from "@/lib/plate-limits";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 export function PostPlateForm() {
@@ -22,6 +29,8 @@ export function PostPlateForm() {
   const [dishName, setDishName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [dailyLimitReached, setDailyLimitReached] = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -38,6 +47,56 @@ export function PostPlateForm() {
       { maximumAge: 600_000, timeout: 8000 }
     );
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      setCheckingLimit(false);
+      return;
+    }
+
+    const userId = user.id;
+    let cancelled = false;
+
+    async function checkDailyLimit() {
+      setCheckingLimit(true);
+      try {
+        const supabase = createBrowserClient();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", userId)
+          .single();
+
+        if (cancelled) return;
+
+        if (hasUnlimitedPlates(profile?.username)) {
+          setDailyLimitReached(false);
+          return;
+        }
+
+        const dayStart = getLocalDayStartIso(getUserTimezone());
+        const { count } = await supabase
+          .from("plates")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("created_at", dayStart);
+
+        if (cancelled) return;
+
+        setDailyLimitReached(isAtDailyPlateLimit(count ?? 0, profile?.username));
+      } finally {
+        if (!cancelled) setCheckingLimit(false);
+      }
+    }
+
+    void checkDailyLimit();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -61,7 +120,7 @@ export function PostPlateForm() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!file) return;
+    if (!file || dailyLimitReached) return;
 
     const restaurantName = restaurant.trim();
     const ordered = dishName.trim();
@@ -107,6 +166,7 @@ export function PostPlateForm() {
           image_url: urlData.publicUrl,
           restaurant_name: restaurantName,
           dish_name: ordered,
+          timezone: getUserTimezone(),
         }),
       });
 
@@ -123,7 +183,35 @@ export function PostPlateForm() {
     }
   }
 
-  const canSubmit = Boolean(file && restaurant.trim() && dishName.trim() && !loading);
+  const canSubmit =
+    Boolean(file && restaurant.trim() && dishName.trim() && !loading && !dailyLimitReached) &&
+    !checkingLimit;
+
+  if (checkingLimit && user) {
+    return (
+      <div className="app-container px-page pb-page pt-4 sm:pt-6">
+        <div className="mb-6 flex items-center gap-3">
+          <AppLogo size={44} />
+          <h1 className="text-2xl font-bold">Post a plate</h1>
+        </div>
+        <p className="text-muted text-sm">Checking your posting limit...</p>
+      </div>
+    );
+  }
+
+  if (dailyLimitReached) {
+    return (
+      <div className="app-container px-page pb-page pt-4 sm:pt-6">
+        <div className="mb-6 flex items-center gap-3">
+          <AppLogo size={44} />
+          <h1 className="text-2xl font-bold">Post a plate</h1>
+        </div>
+        <div className="mx-auto w-full max-w-sm space-y-4 rounded-2xl border border-border bg-surface p-6 text-center">
+          <p className="text-sm">{dailyPlateLimitMessage()}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} className="app-container px-page pb-page pt-4 sm:pt-6">
