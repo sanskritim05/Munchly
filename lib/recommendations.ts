@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import {
   buildDishReason,
+  buildTasteSummaryFromHistory,
   RECOMMENDATION_REASON_MAX_WORDS,
   RECOMMENDATION_REASON_MIN_WORDS,
   resolveDishReason,
@@ -67,20 +68,7 @@ function resolveDishName(restaurant: string, dish: string) {
 }
 
 function buildTasteSummary(history: PlateHistoryItem[]) {
-  const names = history
-    .slice(0, 3)
-    .map((item) => item.dish_name.trim())
-    .filter(Boolean);
-
-  if (names.length === 0) {
-    return "Post a few plates to unlock personalized picks.";
-  }
-
-  if (names.length === 1) {
-    return `Based on ${names[0]}, here are new restaurants and dishes to try.`;
-  }
-
-  return `Based on plates you've posted like ${names.slice(0, 2).join(" and ")}, here are new spots to try.`;
+  return buildTasteSummaryFromHistory(history);
 }
 
 function sanitizeTasteSummary(summary: string | undefined, history: PlateHistoryItem[]) {
@@ -132,6 +120,7 @@ function sanitizeRecommendations(
   const seenRestaurants = new Set<string>();
   const seenDishes = new Set<string>();
   const usedReasons = new Set<string>();
+  const usedAnchors = new Set<string>();
   const cleaned: FoodRecommendation[] = [];
   let pickIndex = 0;
 
@@ -172,6 +161,7 @@ function sanitizeRecommendations(
       reason: resolveDishReason(reason, restaurant, dish, history, locationLabel, {
         pickIndex,
         usedReasons,
+        usedAnchors,
       }),
     });
     pickIndex += 1;
@@ -200,6 +190,7 @@ function fallbackRecommendations(
 
   const recommendations: FoodRecommendation[] = [];
   const usedReasons = new Set<string>();
+  const usedAnchors = new Set<string>();
   let pickIndex = 0;
 
   for (const restaurant of candidates) {
@@ -218,6 +209,7 @@ function fallbackRecommendations(
       reason: buildDishReason(dish, restaurant, history, locationLabel, {
         pickIndex,
         usedReasons,
+        usedAnchors,
       }),
     });
     pickIndex += 1;
@@ -339,6 +331,8 @@ Rules:
 - Match the course and style of what they post. If they post desserts like donuts, pick bakeries, ice cream, or sweet menu items, not savory bowls or chicken entrees
 - Weight recent posts more heavily than older ones when inferring taste
 - If recent posts are pasta, noodles, or savory Italian dishes, recommend similar hearty spots, not ice cream or cookie shops
+- Base each reason on the user's overall posting patterns, not just their single latest dish
+- Use different posted dishes across the three reasons when they genuinely connect to each pick
 - Do not recommend a savory bowl or entree for a dessert post unless the reason clearly says it is a deliberate savory stretch
 - Never imply a donut or dessert post naturally leads to a chicken bowl, burger, or similar savory dish
 - Bad: "You rated yogurt kabab highly, so this burger should work."
