@@ -265,7 +265,7 @@ export function ProfileRecommendations({
 
       {data && hydrated && !loading ? (
         <>
-          <p className="mt-4 text-sm text-gray-300">{data.taste_summary}</p>
+          <p className="mt-4 break-words text-sm leading-relaxed text-gray-300">{data.taste_summary}</p>
           <p className="mt-1 text-xs text-gray-500">
             {data.mode === "nearby" && data.location_label
               ? `Exploring near ${data.location_label}`
@@ -282,7 +282,7 @@ export function ProfileRecommendations({
                 <p className="mt-1 text-sm text-gray-200">
                   Try: <span className="font-semibold text-hot">{rec.dish}</span>
                 </p>
-                <p className="mt-1 text-xs text-gray-400">{rec.reason}</p>
+                <p className="mt-1 break-words text-xs leading-relaxed text-gray-400">{rec.reason}</p>
               </li>
             ))}
           </ul>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AvatarPicker } from "@/components/AvatarPicker";
+import { AccountSettingsSection } from "@/components/AccountSettingsSection";
 import { ThemeSetting } from "@/components/ThemeSetting";
 import { useAuth } from "@/components/AuthProvider";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -248,6 +249,8 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
       >
         {loading ? "Saving..." : "Save changes"}
       </button>
+
+      <AccountSettingsSection />
     </form>
   );
 }

@@ -5,6 +5,7 @@ import {
   RECOMMENDATION_REASON_MAX_WORDS,
   RECOMMENDATION_REASON_MIN_WORDS,
   resolveDishReason,
+  sanitizeReason,
   scorePickForHistory,
   shouldRecommendPick,
 } from "@/lib/recommendation-reasons";
@@ -158,11 +159,13 @@ function sanitizeRecommendations(
     cleaned.push({
       restaurant,
       dish,
-      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel, {
-        pickIndex,
-        usedReasons,
-        usedAnchors,
-      }),
+      reason: sanitizeReason(
+        resolveDishReason(reason, restaurant, dish, history, locationLabel, {
+          pickIndex,
+          usedReasons,
+          usedAnchors,
+        })
+      ),
     });
     pickIndex += 1;
 
@@ -206,11 +209,13 @@ function fallbackRecommendations(
     recommendations.push({
       restaurant,
       dish,
-      reason: buildDishReason(dish, restaurant, history, locationLabel, {
-        pickIndex,
-        usedReasons,
-        usedAnchors,
-      }),
+      reason: sanitizeReason(
+        buildDishReason(dish, restaurant, history, locationLabel, {
+          pickIndex,
+          usedReasons,
+          usedAnchors,
+        })
+      ),
     });
     pickIndex += 1;
 
@@ -306,7 +311,7 @@ Return ONLY valid JSON, no markdown:
 {
   "taste_summary": string (one short sentence about what they post, not ratings),
   "recommendations": [
-    { "restaurant": string, "dish": string, "reason": string (max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
+    { "restaurant": string, "dish": string, "reason": string (STRICT max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
   ]
 }
 
@@ -324,7 +329,8 @@ Rules:
 - Use real US restaurant chains or widely known restaurant names
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
-- Each reason must be at most ${RECOMMENDATION_REASON_MAX_WORDS} words
+- Each reason must be a complete sentence of ${RECOMMENDATION_REASON_MAX_WORDS} words or fewer. Never exceed ${RECOMMENDATION_REASON_MAX_WORDS} words.
+- Count words carefully before returning. If a reason is over ${RECOMMENDATION_REASON_MAX_WORDS} words, rewrite it shorter.
 - All ${RECOMMENDATION_COUNT} reasons must sound different from each other
 - Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
 - Never claim a posted dish has a trait it does not obviously have
@@ -372,7 +378,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     const raw = (parsed.recommendations ?? []).map((r) => ({
       restaurant: cleanText(r.restaurant || ""),
       dish: cleanText(r.dish || ""),
-      reason: cleanText(r.reason || ""),
+      reason: sanitizeReason(cleanText(r.reason || "")),
     }));
 
     const recommendations = fillMissingRecommendations(

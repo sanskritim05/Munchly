@@ -283,10 +283,14 @@ export function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-export function fitWordCount(text: string, max = 15) {
+export function fitWordCount(text: string, max = RECOMMENDATION_REASON_MAX_WORDS) {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length > max) return words.slice(0, max).join(" ");
   return words.join(" ");
+}
+
+export function sanitizeReason(reason: string, max = RECOMMENDATION_REASON_MAX_WORDS) {
+  return fitWordCount(reason.replace(/[—–]/g, "-").trim(), max);
 }
 
 export function isGenericReason(reason: string) {
@@ -301,15 +305,11 @@ function dishLabel(name: string, maxWords = 4) {
     .replace(/\s+/g, " ")
     .trim();
   const words = cleaned.split(" ").filter(Boolean);
-  const short = words.slice(0, maxWords).join(" ");
-  if (short.length <= 32) return short;
-  return `${short.slice(0, 31).trim()}…`;
+  return words.slice(0, maxWords).join(" ");
 }
 
-function restaurantLabel(name: string) {
-  const cleaned = name.trim();
-  if (cleaned.length <= 26) return cleaned;
-  return dishLabel(cleaned, 3);
+function restaurantLabel(name: string, maxWords = 3) {
+  return dishLabel(name, maxWords);
 }
 
 type FoodStyle = "fresh" | "breakfast" | "sweet" | "asian" | "comfort";
@@ -914,11 +914,12 @@ export function resolveDishReason(
   locationLabel: string | null,
   options?: ReasonBuildOptions
 ) {
-  const cleaned = reason.trim();
+  const cleaned = sanitizeReason(reason);
   const count = wordCount(cleaned);
   const usedReasons = options?.usedReasons ?? new Set<string>();
 
   if (
+    cleaned &&
     !isGenericReason(cleaned) &&
     !isTooSimilar(cleaned, usedReasons) &&
     count >= 1 &&
