@@ -57,6 +57,17 @@ export async function PATCH(
     return NextResponse.json({ error: error?.message ?? "Failed to update" }, { status: 500 });
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.username) {
+    revalidatePath(`/profile/${profile.username}`);
+  }
+  revalidatePath(`/plate/${params.id}`);
+
   return NextResponse.json({ plate: data });
 }
 

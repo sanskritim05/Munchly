@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { useAuth } from "@/components/AuthProvider";
+import { createBrowserClient } from "@/lib/supabase/client";
 
 interface PlateItem {
   id: string;
@@ -22,8 +24,37 @@ export function ProfilePlatesGrid({
 }) {
   const { user } = useAuth();
   const isOwner = user?.id === profileUserId;
+  const [items, setItems] = useState(plates);
 
-  if (!plates.length) {
+  useEffect(() => {
+    setItems(plates);
+  }, [plates]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlates() {
+      const supabase = createBrowserClient();
+      const { data } = await supabase
+        .from("plates")
+        .select("id, image_url, score, dish_name, restaurant_name")
+        .eq("user_id", profileUserId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (!cancelled && data) {
+        setItems(data);
+      }
+    }
+
+    void loadPlates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileUserId]);
+
+  if (!items.length) {
     return (
       <div className="mt-6 rounded-2xl border border-dashed border-border bg-surface p-8 text-center">
         <p className="text-gray-400">
@@ -42,7 +73,7 @@ export function ProfilePlatesGrid({
     <div className="mt-6">
       <h2 className="mb-3 font-bold">{isOwner ? "Your plates" : "Plates"}</h2>
       <div className="grid grid-cols-3 gap-2">
-        {plates.map((plate) => (
+        {items.map((plate) => (
           <Link
             key={plate.id}
             href={`/plate/${plate.id}`}

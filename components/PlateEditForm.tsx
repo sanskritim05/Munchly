@@ -57,6 +57,15 @@ export function PlateEditForm({
     <form onSubmit={handleSubmit} className="mt-4 space-y-4 rounded-2xl border border-border bg-surface p-4">
       <h3 className="font-bold">Edit plate</h3>
       <div>
+        <label className="mb-1 block text-sm text-gray-400">Restaurant</label>
+        <RestaurantAutocomplete
+          value={restaurant}
+          onChange={setRestaurant}
+          disabled={saving}
+          location={location}
+        />
+      </div>
+      <div>
         <label className="mb-1 block text-sm text-gray-400">What you ordered</label>
         <input
           value={dish}
@@ -65,15 +74,6 @@ export function PlateEditForm({
           maxLength={80}
           disabled={saving}
           className="w-full rounded-2xl border border-border bg-surface px-4 py-3"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm text-gray-400">Restaurant</label>
-        <RestaurantAutocomplete
-          value={restaurant}
-          onChange={setRestaurant}
-          disabled={saving}
-          location={location}
         />
       </div>
       {error ? <p className="text-sm text-red-400">{error}</p> : null}

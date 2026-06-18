@@ -286,6 +286,7 @@ export function PlateView({
       p ? { ...p, dish_name: body.plate.dish_name, restaurant_name: body.plate.restaurant_name } : p
     );
     setEditing(false);
+    router.refresh();
   }
 
   async function deletePlate() {
@@ -441,9 +442,11 @@ export function PlateView({
         ) : (
           <p className="text-gray-400">@foodie</p>
         )}
-        <h1 className="text-2xl font-bold">{plate.dish_name ?? "Plate"}</h1>
-        {plate.restaurant_name ? (
-          <p className="text-gray-400">{plate.restaurant_name}</p>
+        <h1 className="text-2xl font-bold">
+          {plate.restaurant_name ?? plate.dish_name ?? "Plate"}
+        </h1>
+        {plate.restaurant_name && plate.dish_name ? (
+          <p className="text-gray-400">{plate.dish_name}</p>
         ) : null}
       </div>
 
