@@ -7,7 +7,7 @@ import { AvatarPicker } from "@/components/AvatarPicker";
 import { ThemeSetting } from "@/components/ThemeSetting";
 import { useAuth } from "@/components/AuthProvider";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
-import { isValidUsername, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername } from "@/lib/username";
 
 interface ProfileData {
   display_name: string | null;
@@ -45,8 +45,9 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
     }
 
     const cleanUsername = normalizeUsername(username);
-    if (!isValidUsername(cleanUsername)) {
-      setError("Username must be 3-20 characters: letters, numbers, underscores");
+    const usernameError = getUsernameError(cleanUsername);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
 

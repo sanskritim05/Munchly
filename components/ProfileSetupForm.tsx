@@ -9,7 +9,7 @@ import { consumeSignupSource, track } from "@/lib/analytics";
 import { hasSeenPostPrompt } from "@/lib/first-plate-prompt";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import { PASSWORD_MIN_LENGTH } from "@/lib/username-auth";
-import { isValidUsername, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername } from "@/lib/username";
 
 export function ProfileSetupForm() {
   const router = useRouter();
@@ -44,8 +44,9 @@ export function ProfileSetupForm() {
     }
 
     const cleanUsername = normalizeUsername(username);
-    if (!isValidUsername(cleanUsername)) {
-      setError("Username must be 3-20 characters: letters, numbers, underscores");
+    const usernameError = getUsernameError(cleanUsername);
+    if (usernameError) {
+      setError(usernameError);
       return;
     }
 

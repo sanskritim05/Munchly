@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
-import { isValidUsername, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -20,11 +20,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  if (!isValidUsername(username)) {
-    return NextResponse.json(
-      { error: "Username must be 3-20 characters: letters, numbers, underscores" },
-      { status: 400 }
-    );
+  const usernameError = getUsernameError(username);
+  if (usernameError) {
+    return NextResponse.json({ error: usernameError }, { status: 400 });
   }
 
   const supabase = createAdminClient();

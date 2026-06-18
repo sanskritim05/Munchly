@@ -4,7 +4,7 @@ import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidPassword, PASSWORD_MIN_LENGTH, usernameAuthEmail } from "@/lib/username-auth";
-import { isValidUsername, normalizeUsername } from "@/lib/username";
+import { getUsernameError, normalizeUsername } from "@/lib/username";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -17,11 +17,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  if (!isValidUsername(username)) {
-    return NextResponse.json(
-      { error: "Username must be 3-20 characters: letters, numbers, underscores" },
-      { status: 400 }
-    );
+  const usernameError = getUsernameError(username);
+  if (usernameError) {
+    return NextResponse.json({ error: usernameError }, { status: 400 });
   }
 
   if (!isValidPassword(password)) {
