@@ -246,7 +246,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   if (!authLoading && !registered) {
     return (
       <FeedSignInPrompt
-        title={scope === "following" ? "sign in to see Following" : "sign in to rate plates"}
+        title={scope === "following" ? "sign in to see following" : "sign in to rate plates"}
         description="Browse posts for free. Create an account to swipe hot or not."
       />
     );
