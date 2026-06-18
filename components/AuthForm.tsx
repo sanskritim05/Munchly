@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppIcon } from "@/components/AppIcon";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { getPostAuthPath } from "@/lib/auth-redirect";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -59,7 +60,8 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         </div>
 
         <div className="relative z-10 w-full max-w-md">
-          <h1 className="text-5xl font-bold tracking-tight">Is your food a 10?</h1>
+          <AppLogo size={160} priority className="mx-auto" />
+          <h1 className="mt-6 text-5xl font-bold tracking-tight">Is your food a 10?</h1>
           <p className="mt-4 text-xl text-gray-400">
             {isSignIn ? "Sign in to rate plates and post your own." : "Create an account to get started."}
           </p>

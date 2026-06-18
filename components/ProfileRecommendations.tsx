@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -17,6 +17,45 @@ interface RecommendationResult {
   recommendations: FoodRecommendation[];
 }
 
+interface TastePicksCache {
+  plateCount: number;
+  data: RecommendationResult;
+  locationEnabled: boolean;
+  coords: { lat: number; lng: number } | null;
+}
+
+function tastePicksCacheKey(userId: string) {
+  return `platecheck-taste-picks:${userId}`;
+}
+
+function readTastePicksCache(userId: string, plateCount: number): TastePicksCache | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = sessionStorage.getItem(tastePicksCacheKey(userId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as TastePicksCache;
+    if (parsed.plateCount !== plateCount || !parsed.data?.recommendations?.length) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeTastePicksCache(userId: string, cache: TastePicksCache) {
+  if (typeof window === "undefined") return;
+
+  try {
+    sessionStorage.setItem(tastePicksCacheKey(userId), JSON.stringify(cache));
+  } catch {
+    // Ignore quota or private-mode storage errors.
+  }
+}
+
 export function ProfileRecommendations({
   profileUserId,
   plateCount,
@@ -24,13 +63,31 @@ export function ProfileRecommendations({
   profileUserId: string;
   plateCount: number;
 }) {
-  const { user, getAccessToken } = useAuth();
+  const { user, getAccessToken, loading: authLoading } = useAuth();
   const isOwner = user?.id === profileUserId;
   const [data, setData] = useState<RecommendationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const loadedForRef = useRef<string | null>(null);
+
+  const persistRecommendations = useCallback(
+    (
+      next: RecommendationResult,
+      nextLocationEnabled: boolean,
+      nextCoords: { lat: number; lng: number } | null
+    ) => {
+      writeTastePicksCache(profileUserId, {
+        plateCount,
+        data: next,
+        locationEnabled: nextLocationEnabled,
+        coords: nextCoords,
+      });
+    },
+    [profileUserId, plateCount]
+  );
 
   const fetchRecommendations = useCallback(
     async (
@@ -40,7 +97,10 @@ export function ProfileRecommendations({
       current?: FoodRecommendation[]
     ) => {
       const token = getAccessToken();
-      if (!token) return;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       setError("");
@@ -77,20 +137,44 @@ export function ProfileRecommendations({
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Failed to load recommendations");
 
-        setData(json as RecommendationResult);
+        const next = json as RecommendationResult;
+        setData(next);
+        persistRecommendations(next, withLocation, withLocation ? (position ?? coords) : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
       } finally {
         setLoading(false);
       }
     },
-    [getAccessToken]
+    [coords, getAccessToken, persistRecommendations]
   );
 
   useEffect(() => {
-    if (!isOwner || plateCount === 0) return;
-    fetchRecommendations(false);
-  }, [isOwner, plateCount, fetchRecommendations]);
+    if (authLoading) return;
+
+    if (!isOwner || plateCount === 0) {
+      setHydrated(true);
+      loadedForRef.current = null;
+      return;
+    }
+
+    const loadKey = `${profileUserId}:${plateCount}`;
+    if (loadedForRef.current === loadKey) return;
+
+    const cached = readTastePicksCache(profileUserId, plateCount);
+    if (cached) {
+      setData(cached.data);
+      setLocationEnabled(cached.locationEnabled);
+      setCoords(cached.coords);
+      setHydrated(true);
+      loadedForRef.current = loadKey;
+      return;
+    }
+
+    loadedForRef.current = loadKey;
+    setHydrated(true);
+    void fetchRecommendations(false);
+  }, [authLoading, isOwner, plateCount, profileUserId, fetchRecommendations]);
 
   function enableLocation() {
     if (!navigator.geolocation) {
@@ -173,13 +257,13 @@ export function ProfileRecommendations({
         </p>
       ) : null}
 
-      {loading ? (
+      {!hydrated || loading ? (
         <p className="mt-4 text-sm text-gray-400">Finding picks for you...</p>
       ) : null}
 
       {error ? <p className="mt-4 text-sm text-hot">{error}</p> : null}
 
-      {data && !loading ? (
+      {data && hydrated && !loading ? (
         <>
           <p className="mt-4 text-sm text-gray-300">{data.taste_summary}</p>
           <p className="mt-1 text-xs text-gray-500">

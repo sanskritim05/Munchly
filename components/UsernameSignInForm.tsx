@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { getPostAuthPath } from "@/lib/auth-redirect";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -54,7 +55,8 @@ export function UsernameSignInForm() {
         </div>
 
         <div className="relative z-10 w-full max-w-md text-left">
-          <h1 className="text-center text-4xl font-bold tracking-tight">Welcome back</h1>
+          <AppLogo size={140} priority className="mx-auto" />
+          <h1 className="mt-6 text-center text-4xl font-bold tracking-tight">Welcome back</h1>
           <p className="mt-3 text-center text-gray-400">Sign in with your username and password.</p>
 
           <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-2xl border border-border bg-surface p-6">

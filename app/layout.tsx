@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   description: "PlateCheck. Post it. Rate it. Hot or Not for food photos.",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {

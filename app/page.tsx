@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppLogo } from "@/components/AppLogo";
 
 export default function LandingPage() {
   return (
@@ -10,7 +11,8 @@ export default function LandingPage() {
           <div className="h-full w-full animate-pulse bg-gradient-to-br from-hot/40 via-purple/20 to-black" />
         </div>
         <div className="relative z-10 w-full max-w-md">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Is your food a 10?</h1>
+          <AppLogo size={180} priority className="mx-auto" />
+          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">Is your food a 10?</h1>
           <p className="mt-4 text-lg text-gray-400 sm:text-xl">Post it. Rate it. Go viral.</p>
           <Link
             href="/swipe"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarPicker } from "@/components/AvatarPicker";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { consumeSignupSource, track } from "@/lib/analytics";
 import { hasSeenPostPrompt } from "@/lib/first-plate-prompt";
@@ -156,7 +157,8 @@ export function ProfileSetupForm() {
         </div>
 
         <div className="relative z-10 w-full max-w-md text-left">
-          <h1 className="text-center text-4xl font-bold tracking-tight">Get started</h1>
+          <AppLogo size={140} priority className="mx-auto" />
+          <h1 className="mt-6 text-center text-4xl font-bold tracking-tight">Get started</h1>
           <p className="mt-3 text-center text-gray-400">
             Pick a username and password so you can sign back in anytime.
           </p>

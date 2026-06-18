@@ -155,11 +155,7 @@ function fallbackRecommendations(
   const visited = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
   const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
   const extraExclude = buildExtraExclude(options);
-  let candidates = getUSRestaurants().filter((r) => !visited.has(normalizeKey(r)));
-
-  if (options?.refresh) {
-    candidates = shuffle(candidates);
-  }
+  let candidates = shuffle(getUSRestaurants().filter((r) => !visited.has(normalizeKey(r))));
 
   const taste_summary = buildTasteSummary(history);
 

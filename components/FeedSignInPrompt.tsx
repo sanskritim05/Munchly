@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppLogo } from "@/components/AppLogo";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 
 export function FeedSignInPrompt({
@@ -10,6 +11,7 @@ export function FeedSignInPrompt({
 }) {
   return (
     <FeedViewportEmpty title={title} description={description}>
+      <AppLogo size={100} className="mx-auto mb-2" />
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <Link
           href="/get-started?next=/swipe"

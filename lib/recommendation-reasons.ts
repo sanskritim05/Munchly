@@ -16,9 +16,6 @@ const GENERIC_REASON_PATTERNS = [
   /crave most/i,
   /matches the flavors you/i,
   /matches your palate nicely/i,
-  /natural next/i,
-  /strong pick for your/i,
-  /bright tangy flavors in/i,
   /you rated/i,
   /you rate /i,
   /because you rated/i,
@@ -27,9 +24,16 @@ const GENERIC_REASON_PATTERNS = [
   /you seem to like/i,
   /you loved/i,
   /heat seekers like you/i,
+  /fresh pick/i,
+  /is a fresh pick/i,
+  /^a well-known pick for/i,
+  /^popular near you/i,
 ];
 
 const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
+  { trait: "salad", pattern: /\b(salad|papaya salad|greens|slaw|cucumber salad)\b/i },
+  { trait: "asian", pattern: /\b(thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodles)\b/i },
+  { trait: "dessert", pattern: /\b(pudding|dessert|cake|cookie|banana pudding|pastry|pie|sweet)\b/i },
   { trait: "kabob", pattern: /\b(kabob|kabab|kebab|skewer|shawarma|gyro|tikka|tandoori)\b/i },
   { trait: "spicy", pattern: /\b(spicy|hot|jalape|buffalo|peri|cajun|sriracha|habanero|chipotle|chili)\b/i },
   { trait: "smoky", pattern: /\b(smoky|smoke|bbq|barbecue|grilled|charred|bourbon|ribeye|steak)\b/i },
@@ -48,19 +52,22 @@ const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
 
 const TRAIT_PRIORITY = [
   "kabob",
+  "asian",
   "spicy",
   "smoky",
   "creamy",
   "crispy",
+  "salad",
   "seafood",
   "pasta",
   "pizza",
   "bowl",
   "chicken",
   "beef",
+  "dessert",
+  "breakfast",
   "tangy",
   "sweet",
-  "breakfast",
 ];
 
 type ReasonBuilder = (anchorDish: string, dish: string, restaurant: string) => string;
@@ -68,115 +75,133 @@ type ReasonBuilder = (anchorDish: string, dish: string, restaurant: string) => s
 const TRAIT_REASON_VARIANTS: Record<string, ReasonBuilder[]> = {
   kabob: [
     (anchor, dish) =>
-      `You posted grilled kabobs like ${dishShort(anchor)}; ${dishShort(dish)} has similar seasoned char.`,
+      `You posted grilled kabobs like ${dishLabel(anchor)}; ${dishLabel(dish)} has similar seasoned char.`,
     (anchor, dish) =>
-      `Skewered plates you shared point toward ${dishShort(dish)}'s bold spice.`,
+      `Skewered plates you shared point toward ${dishLabel(dish)}'s bold spice.`,
     (anchor, dish) =>
-      `${dishShort(dish)} brings grilled spice energy like your ${dishShort(anchor)} post.`,
+      `${dishLabel(dish)} brings grilled spice energy like your ${dishLabel(anchor)} post.`,
   ],
   spicy: [
     (anchor, dish) =>
-      `You posted spicy food like ${dishShort(anchor)}; ${dishShort(dish)} should bring similar heat.`,
+      `You posted spicy food like ${dishLabel(anchor)}; ${dishLabel(dish)} should bring similar heat.`,
     (anchor, dish) =>
-      `Your ${dishShort(anchor)} post had heat; ${dishShort(dish)} keeps that going.`,
+      `Your ${dishLabel(anchor)} post had heat; ${dishLabel(dish)} keeps that going.`,
     (anchor, dish) =>
-      `${dishShort(dish)} matches the spice level in plates you've shared.`,
+      `${dishLabel(dish)} matches the spice level in plates you've shared.`,
   ],
   smoky: [
     (anchor, dish) =>
-      `You posted smoky grilled food like ${dishShort(anchor)}; ${dishShort(dish)} has charred depth.`,
+      `You posted smoky grilled food like ${dishLabel(anchor)}; ${dishLabel(dish)} has charred depth.`,
     (anchor, dish) =>
-      `Grilled posts like ${dishShort(anchor)} suggest ${dishShort(dish)}'s savor could appeal.`,
+      `Grilled posts like ${dishLabel(anchor)} suggest ${dishLabel(dish)}'s savor could appeal.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s smoke and char fit plates you've already shared.`,
+      `${dishLabel(dish)}'s smoke and char fit plates you've already shared.`,
   ],
   creamy: [
     (anchor, dish) =>
-      `You posted creamy comfort like ${dishShort(anchor)}; ${dishShort(dish)} has similar richness.`,
+      `You posted creamy comfort like ${dishLabel(anchor)}; ${dishLabel(dish)} has similar richness.`,
     (anchor, dish) =>
-      `Rich plates you shared make ${dishShort(dish)} a natural next try.`,
+      `Rich plates you shared make ${dishLabel(dish)} a natural next try.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s lush texture fits what you've been ordering.`,
+      `${dishLabel(dish)}'s lush texture fits what you've been ordering.`,
   ],
   tangy: [
     (anchor, dish) =>
-      `You posted bright flavors like ${dishShort(anchor)}; ${dishShort(dish)} has a similar tang.`,
+      `You posted bright flavors like ${dishLabel(anchor)}; ${dishLabel(dish)} has a similar tang.`,
     (anchor, dish) =>
-      `Your ${dishShort(anchor)} post was bright and bold; ${dishShort(dish)} follows that lane.`,
+      `Your ${dishLabel(anchor)} post was bright and bold; ${dishLabel(dish)} follows that lane.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s citrusy punch fits the plates you've been sharing.`,
+      `${dishLabel(dish)}'s citrusy punch fits the plates you've been sharing.`,
   ],
   crispy: [
     (anchor, dish) =>
-      `You posted crispy fried food like ${dishShort(anchor)}; ${dishShort(dish)} should crunch too.`,
+      `You posted crispy fried food like ${dishLabel(anchor)}; ${dishLabel(dish)} should crunch too.`,
     (anchor, dish) =>
-      `Fried plates you shared point toward ${dishShort(dish)}'s crisp texture.`,
+      `Fried plates you shared point toward ${dishLabel(dish)}'s crisp texture.`,
     (anchor, dish) =>
-      `${dishShort(dish)} should satisfy the same crunch as your ${dishShort(anchor)} post.`,
+      `${dishLabel(dish)} should satisfy the same crunch as your ${dishLabel(anchor)} post.`,
   ],
   sweet: [
     (anchor, dish) =>
-      `You posted sweeter plates like ${dishShort(anchor)}; ${dishShort(dish)} has a similar glaze.`,
+      `You posted sweeter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} has a similar glaze.`,
     (anchor, dish) =>
-      `Sweet-savory posts like ${dishShort(anchor)} make ${dishShort(dish)} a good stretch.`,
+      `Sweet-savory posts like ${dishLabel(anchor)} make ${dishLabel(dish)} a good stretch.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s sweetness fits the style of food you've shared.`,
+      `${dishLabel(dish)}'s sweetness fits the style of food you've shared.`,
   ],
   bowl: [
     (anchor, dish) =>
-      `You posted bowl-style plates like ${dishShort(anchor)}; ${dishShort(dish)} has a similar build.`,
+      `You posted bowl-style plates like ${dishLabel(anchor)}; ${dishLabel(dish)} has a similar build.`,
     (anchor, dish) =>
-      `Balanced bowls you've shared suggest ${dishShort(dish)} should feel familiar.`,
+      `Balanced bowls you've shared suggest ${dishLabel(dish)} should feel familiar.`,
     (anchor, dish) =>
-      `${dishShort(dish)} has the layered bowl energy from your ${dishShort(anchor)} post.`,
+      `${dishLabel(dish)} has the layered bowl energy from your ${dishLabel(anchor)} post.`,
   ],
   pasta: [
     (anchor, dish) =>
-      `You posted pasta or noodles like ${dishShort(anchor)}; ${dishShort(dish)} keeps that carb comfort.`,
+      `You posted pasta or noodles like ${dishLabel(anchor)}; ${dishLabel(dish)} keeps that carb comfort.`,
     (anchor, dish) =>
-      `Noodle posts you've shared point toward ${dishShort(dish)} as a next try.`,
+      `Noodle posts you've shared point toward ${dishLabel(dish)} as a next try.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s hearty carbs fit the plates you've been posting.`,
+      `${dishLabel(dish)}'s hearty carbs fit the plates you've been posting.`,
   ],
   pizza: [
     (anchor, dish) =>
-      `You posted pizza-like comfort before; ${dishShort(dish)} has cheesy savory appeal.`,
+      `You posted pizza-like comfort before; ${dishLabel(dish)} has cheesy savory appeal.`,
     (anchor, dish) =>
-      `Cheesy posts you've shared make ${dishShort(dish)} an easy next pick.`,
+      `Cheesy posts you've shared make ${dishLabel(dish)} an easy next pick.`,
     (anchor, dish) =>
-      `${dishShort(dish)} brings melty richness like the plates you've shared.`,
+      `${dishLabel(dish)} brings melty richness like the plates you've shared.`,
   ],
   seafood: [
     (anchor, dish) =>
-      `You posted seafood like ${dishShort(anchor)}; ${dishShort(dish)} stays in that lane.`,
+      `You posted seafood like ${dishLabel(anchor)}; ${dishLabel(dish)} stays in that lane.`,
     (anchor, dish) =>
-      `Ocean-forward posts you've shared suggest ${dishShort(dish)} could work.`,
+      `Ocean-forward posts you've shared suggest ${dishLabel(dish)} could work.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s seafood flavor fits what you've already ordered.`,
+      `${dishLabel(dish)}'s seafood flavor fits what you've already ordered.`,
   ],
   chicken: [
     (anchor, dish) =>
-      `You often post chicken like ${dishShort(anchor)}; ${dishShort(dish)} stays in that lane.`,
+      `You often post chicken like ${dishLabel(anchor)}; ${dishLabel(dish)} stays in that lane.`,
     (anchor, dish) =>
-      `Chicken plates you've shared make ${dishShort(dish)} a natural next order.`,
+      `Chicken plates you've shared make ${dishLabel(dish)} a natural next order.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s poultry focus matches what you've been posting.`,
+      `${dishLabel(dish)}'s poultry focus matches what you've been posting.`,
   ],
   beef: [
     (anchor, dish) =>
-      `You posted hearty beef like ${dishShort(anchor)}; ${dishShort(dish)} fits that protein style.`,
+      `You posted hearty beef like ${dishLabel(anchor)}; ${dishLabel(dish)} fits that protein style.`,
     (anchor, dish) =>
-      `Beefy posts you've shared suggest ${dishShort(dish)} could satisfy.`,
+      `Beefy posts you've shared suggest ${dishLabel(dish)} could satisfy.`,
     (anchor, dish) =>
-      `${dishShort(dish)}'s rich protein matches the hearty plates you've shared.`,
+      `${dishLabel(dish)}'s rich protein matches the hearty plates you've shared.`,
   ],
   breakfast: [
     (anchor, dish) =>
-      `You posted breakfast plates like ${dishShort(anchor)}; ${dishShort(dish)} suits that comfort.`,
+      `You posted breakfast plates like ${dishLabel(anchor)}; ${dishLabel(dish)} suits that comfort.`,
     (anchor, dish) =>
-      `Morning-style posts you've shared point toward ${dishShort(dish)}.`,
+      `Morning-style posts you've shared point toward ${dishLabel(dish)}.`,
     (anchor, dish) =>
-      `${dishShort(dish)} has the brunchy comfort from your ${dishShort(anchor)} post.`,
+      `${dishLabel(dish)} has the brunchy comfort from your ${dishLabel(anchor)} post.`,
+  ],
+  salad: [
+    (anchor, dish) =>
+      `You post lighter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} keeps that fresh balance.`,
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post was bright and light; ${dishLabel(dish)} should feel similar.`,
+  ],
+  asian: [
+    (anchor, dish) =>
+      `You post Asian-leaning dishes like ${dishLabel(anchor)}; ${dishLabel(dish)} should feel familiar.`,
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post had bold flavors; ${dishLabel(dish)} is a natural next stretch.`,
+  ],
+  dessert: [
+    (anchor, dish) =>
+      `You share sweeter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} adds another treat.`,
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post leaned sweet; ${dishLabel(dish)} brings indulgence in a new way.`,
   ],
 };
 
@@ -184,51 +209,51 @@ const BRIDGE_REASONS: Record<string, Record<string, ReasonBuilder[]>> = {
   kabob: {
     beef: [
       (anchor, dish) =>
-        `You posted kabobs like ${dishShort(anchor)}; ${dishShort(dish)} fits that bold meat style.`,
+        `You posted kabobs like ${dishLabel(anchor)}; ${dishLabel(dish)} fits that bold meat style.`,
       (anchor, dish) =>
-        `Grilled spice posts like ${dishShort(anchor)} point toward ${dishShort(dish)}'s hearty beef.`,
+        `Grilled spice posts like ${dishLabel(anchor)} point toward ${dishLabel(dish)}'s hearty beef.`,
     ],
     chicken: [
       (anchor, dish) =>
-        `Kabob posts you've shared suggest ${dishShort(dish)}'s seasoned poultry could work.`,
+        `Kabob posts you've shared suggest ${dishLabel(dish)}'s seasoned poultry could work.`,
       (anchor, dish) =>
-        `You already post spiced grilled meat; ${dishShort(dish)} should feel familiar.`,
+        `You already post spiced grilled meat; ${dishLabel(dish)} should feel familiar.`,
     ],
   },
   tangy: {
     beef: [
       (anchor, dish) =>
-        `Bright posts like ${dishShort(anchor)} suggest ${dishShort(dish)}'s rich beef savor.`,
+        `Bright posts like ${dishLabel(anchor)} suggest ${dishLabel(dish)}'s rich beef savor.`,
       (anchor, dish) =>
-        `You share tangy plates often; ${dishShort(dish)} brings savory depth too.`,
+        `You share tangy plates often; ${dishLabel(dish)} brings savory depth too.`,
     ],
     chicken: [
       (anchor, dish) =>
-        `Citrusy posts like ${dishShort(anchor)} make ${dishShort(dish)}'s chicken an easy yes.`,
+        `Citrusy posts like ${dishLabel(anchor)} make ${dishLabel(dish)}'s chicken an easy yes.`,
       (anchor, dish) =>
-        `You post bright flavors; ${dishShort(dish)}'s marinated poultry should work.`,
+        `You post bright flavors; ${dishLabel(dish)}'s marinated poultry should work.`,
     ],
     crispy: [
       (anchor, dish) =>
-        `Bright plates you've posted point to ${dishShort(dish)}'s sweet fried crunch.`,
+        `Bright plates you've posted point to ${dishLabel(dish)}'s sweet fried crunch.`,
       (anchor, dish) =>
-        `Your ${dishShort(anchor)} post was bright; ${dishShort(dish)} adds crispy comfort.`,
+        `Your ${dishLabel(anchor)} post was bright; ${dishLabel(dish)} adds crispy comfort.`,
     ],
   },
   spicy: {
     creamy: [
       (anchor, dish) =>
-        `Spicy posts like ${dishShort(anchor)} pair well with ${dishShort(dish)}'s rich heat.`,
+        `Spicy posts like ${dishLabel(anchor)} pair well with ${dishLabel(dish)}'s rich heat.`,
     ],
     smoky: [
       (anchor, dish) =>
-        `You post spicy food like ${dishShort(anchor)}; ${dishShort(dish)} brings bold char too.`,
+        `You post spicy food like ${dishLabel(anchor)}; ${dishLabel(dish)} brings bold char too.`,
     ],
   },
   pasta: {
     spicy: [
       (anchor, dish) =>
-        `Noodle posts like ${dishShort(anchor)} suggest ${dishShort(dish)}'s spicy sauce could click.`,
+        `Noodle posts like ${dishLabel(anchor)} suggest ${dishLabel(dish)}'s spicy sauce could click.`,
     ],
   },
 };
@@ -254,10 +279,76 @@ export function isGenericReason(reason: string) {
   return GENERIC_REASON_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
-function dishShort(name: string, maxWords = 3) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  return words.slice(0, maxWords).join(" ");
+function dishLabel(name: string, maxWords = 4) {
+  const cleaned = name
+    .replace(/[,;|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = cleaned.split(" ").filter(Boolean);
+  const short = words.slice(0, maxWords).join(" ");
+  if (short.length <= 32) return short;
+  return `${short.slice(0, 31).trim()}…`;
 }
+
+function restaurantLabel(name: string) {
+  const cleaned = name.trim();
+  if (cleaned.length <= 26) return cleaned;
+  return dishLabel(cleaned, 3);
+}
+
+type FoodStyle = "fresh" | "breakfast" | "sweet" | "asian" | "comfort";
+
+const STYLE_WORDS: Record<FoodStyle, string> = {
+  fresh: "lighter",
+  breakfast: "breakfast",
+  sweet: "sweeter",
+  asian: "Asian-leaning",
+  comfort: "hearty",
+};
+
+function inferFoodStyle(...parts: (string | null | undefined)[]) {
+  const text = parts.filter(Boolean).join(" ").toLowerCase();
+  if (/salad|papaya salad|greens|slaw|cucumber/.test(text)) return "fresh" as const;
+  if (/pancake|waffle|breakfast|eggs|biscuit|brunch|oatmeal/.test(text)) return "breakfast" as const;
+  if (/pudding|dessert|cake|cookie|banana|pastry|pie|sweet/.test(text)) return "sweet" as const;
+  if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|noodle|dan dan/.test(text)) {
+    return "asian" as const;
+  }
+  return "comfort" as const;
+}
+
+const STYLE_REASONS: Record<FoodStyle, ReasonBuilder[]> = {
+  fresh: [
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post was light and fresh; ${dishLabel(dish)} keeps that same balance.`,
+    (anchor, dish) =>
+      `You share lighter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} should feel similarly fresh.`,
+  ],
+  breakfast: [
+    (anchor, dish) =>
+      `You post breakfast plates like ${dishLabel(anchor)}; ${dishLabel(dish)} fits that morning comfort.`,
+    (anchor, dish) =>
+      `Morning food like ${dishLabel(anchor)} suggests ${dishLabel(dish)} could hit a similar note.`,
+  ],
+  sweet: [
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post leaned sweet; ${dishLabel(dish)} brings another indulgent option.`,
+    (anchor, dish) =>
+      `You share sweeter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} adds a different treat.`,
+  ],
+  asian: [
+    (anchor, dish) =>
+      `Your ${dishLabel(anchor)} post had bold Asian flavors; ${dishLabel(dish)} is a natural next stretch.`,
+    (anchor, dish) =>
+      `You post Asian-leaning dishes like ${dishLabel(anchor)}; ${dishLabel(dish)} should feel familiar.`,
+  ],
+  comfort: [
+    (anchor, dish, rest) =>
+      `After posting ${dishLabel(anchor)}, ${dishLabel(dish)} at ${restaurantLabel(rest)} switches up your usual comfort.`,
+    (anchor, dish) =>
+      `You ordered ${dishLabel(anchor)} before; ${dishLabel(dish)} offers a different comfort-food angle.`,
+  ],
+};
 
 function extractTraits(...parts: (string | null | undefined)[]) {
   const text = parts.filter(Boolean).join(" ").toLowerCase();
@@ -338,15 +429,12 @@ function reasonForTrait(
 ) {
   const builders = TRAIT_REASON_VARIANTS[trait] ?? [
     (anchor, dishName, rest) =>
-      `You posted ${dishShort(anchor)}; ${dishShort(dishName)} at ${dishShort(rest, 2)} is worth trying.`,
+      `You posted ${dishLabel(anchor)}; ${dishLabel(dishName)} at ${restaurantLabel(rest)} is worth trying.`,
   ];
 
   return (
     chooseUniqueReason(builders, anchorDish, dish, restaurant, pickIndex, usedReasons) ??
-    fitWordCount(
-      builders[pickIndex % builders.length](anchorDish, dish, restaurant),
-      RECOMMENDATION_REASON_MAX_WORDS
-    )
+    null
   );
 }
 
@@ -359,15 +447,15 @@ function sameProteinReason(
 ) {
   const variants: Record<string, string[]> = {
     chicken: [
-      `You often post chicken like ${dishShort(anchorDish)}; ${dishShort(dish)} stays in that lane.`,
-      `Chicken plates you've shared point toward ${dishShort(dish)} as a next try.`,
+      `You often post chicken like ${dishLabel(anchorDish)}; ${dishLabel(dish)} stays in that lane.`,
+      `Chicken plates you've shared point toward ${dishLabel(dish)} as a next try.`,
     ],
     beef: [
-      `You posted hearty beef like ${dishShort(anchorDish)}; ${dishShort(dish)} fits that style.`,
-      `Beefy posts you've shared suggest ${dishShort(dish)} could work well.`,
+      `You posted hearty beef like ${dishLabel(anchorDish)}; ${dishLabel(dish)} fits that style.`,
+      `Beefy posts you've shared suggest ${dishLabel(dish)} could work well.`,
     ],
     seafood: [
-      `Seafood posts like ${dishShort(anchorDish)} make ${dishShort(dish)} a sensible stretch.`,
+      `Seafood posts like ${dishLabel(anchorDish)} make ${dishLabel(dish)} a sensible stretch.`,
     ],
   };
 
@@ -446,17 +534,38 @@ export function buildDishReason(
   );
   if (proteinReason) candidates.push(proteinReason);
 
+  const anchorStyle = inferFoodStyle(anchorDish, anchorRestaurant);
+  const dishStyle = inferFoodStyle(dish, restaurant);
+  const styleKey = anchorStyle === dishStyle ? anchorStyle : anchorStyle;
+  const styleBuilders = STYLE_REASONS[styleKey] ?? STYLE_REASONS.comfort;
+  const styleReason = chooseUniqueReason(
+    styleBuilders,
+    anchorDish,
+    dish,
+    restaurant,
+    pickIndex,
+    usedReasons
+  );
+  if (styleReason) candidates.push(styleReason);
+
+  if (anchorStyle !== dishStyle) {
+    candidates.push(
+      `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`,
+      `You usually post ${STYLE_WORDS[anchorStyle]} plates like ${dishLabel(anchorDish)}; ${dishLabel(dish)} switches lanes.`
+    );
+  }
+
   const location = locationLabel?.split(",")[0]?.trim();
   if (location) {
     candidates.push(
-      `Near ${location}, ${dishShort(dish)} is worth trying after your ${dishShort(anchorDish)} post.`
+      `Near ${location}, ${dishLabel(dish)} at ${restaurantLabel(restaurant)} fits what you've been posting.`
     );
   }
 
   candidates.push(
-    `You posted ${dishShort(anchorDish)}; ${dishShort(dish)} at ${dishShort(restaurant, 2)} is a fresh pick.`,
-    `Since you ordered ${dishShort(anchorDish)}, try ${dishShort(dish)} somewhere new.`,
-    `${dishShort(dish)} at ${dishShort(restaurant, 2)} could match the vibe of your ${dishShort(anchorDish)} post.`
+    `You posted ${dishLabel(anchorDish)}; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a new spot to try.`,
+    `Since you ordered ${dishLabel(anchorDish)}, ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a different order.`,
+    `${dishLabel(dish)} at ${restaurantLabel(restaurant)} contrasts nicely with your ${dishLabel(anchorDish)} post.`
   );
 
   for (const reason of candidates) {
@@ -467,7 +576,7 @@ export function buildDishReason(
   }
 
   const fallback = fitWordCount(
-    `You posted ${dishShort(anchorDish)}; try ${dishShort(dish)} at ${dishShort(restaurant, 2)} next.`,
+    `You posted ${dishLabel(anchorDish)}; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is worth a try.`,
     RECOMMENDATION_REASON_MAX_WORDS
   );
   usedReasons.add(reasonSignature(fallback));

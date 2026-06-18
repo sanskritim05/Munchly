@@ -300,13 +300,16 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
   return (
     <div className="relative mx-auto h-full w-full touch-none px-feed">
-      <div className="absolute right-3 top-2 z-20 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-black/60 px-3 py-1 text-xs sm:text-sm">
-        <span className="inline-flex items-center gap-1">
-          <AppIcon kind="flame" size={16} />
-          {ratedToday} rated today
-        </span>
-        {streak > 0 ? ` · Day ${streak} streak` : ""}
-      </div>
+      {scope === "foryou" ? (
+        <div className="absolute right-3 top-2 z-20 rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            <AppIcon kind="flame" size={16} />
+            <span>{ratedToday} rated today</span>
+            <span className="text-gray-400">·</span>
+            <span>{streak > 0 ? `Day ${streak} streak` : "No streak yet"}</span>
+          </span>
+        </div>
+      ) : null}
 
       <div className="absolute inset-x-0 top-2 bottom-[var(--feed-actions-height)]">
         {next ? (

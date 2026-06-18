@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShareAnalyticsTracker } from "@/components/ShareAnalyticsTracker";
+import { AppLogo } from "@/components/AppLogo";
 import { ShareCopyLink } from "@/components/ShareCopyLink";
 import { ShareCtaLinks } from "@/components/ShareCtaLinks";
 import { SharePlateCard } from "@/components/SharePlateCard";
@@ -58,7 +59,8 @@ export default async function SharePage({ params }: { params: { id: string } }) 
     return (
       <div className="flex min-h-app items-center justify-center bg-[#080808] px-6 text-center">
         <div>
-          <p className="text-lg text-gray-400">This plate is gone.</p>
+          <AppLogo size={120} className="mx-auto" />
+          <p className="mt-6 text-lg text-gray-400">This plate is gone.</p>
           <Link href="/get-started" className="mt-4 inline-block text-hot">
             Join PlateCheck →
           </Link>
@@ -82,9 +84,9 @@ export default async function SharePage({ params }: { params: { id: string } }) 
       <ShareAnalyticsTracker plateId={params.id} score={score} />
 
       <div className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 pb-10 pt-8 sm:px-6">
-        <p className="text-center text-sm uppercase tracking-[0.2em] text-[#666]">
-          PlateCheck
-        </p>
+        <div className="flex justify-center">
+          <AppLogo size={120} />
+        </div>
 
         <h1 className="text-center text-xl font-bold leading-snug text-[#f0ede6]">
           <span className="inline-flex flex-wrap items-baseline justify-center gap-x-1">
