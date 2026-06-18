@@ -33,7 +33,12 @@ export function ProfileRecommendations({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const fetchRecommendations = useCallback(
-    async (withLocation: boolean, position?: { lat: number; lng: number }) => {
+    async (
+      withLocation: boolean,
+      position?: { lat: number; lng: number },
+      refresh = false,
+      current?: FoodRecommendation[]
+    ) => {
       const token = getAccessToken();
       if (!token) return;
 
@@ -41,10 +46,23 @@ export function ProfileRecommendations({
       setError("");
 
       try {
-        const body: { lat?: number; lng?: number } = {};
+        const body: {
+          lat?: number;
+          lng?: number;
+          refresh?: boolean;
+          exclude_restaurants?: string[];
+          exclude_dishes?: string[];
+        } = {};
+
         if (withLocation && position) {
           body.lat = position.lat;
           body.lng = position.lng;
+        }
+
+        if (refresh && current?.length) {
+          body.refresh = true;
+          body.exclude_restaurants = current.map((rec) => rec.restaurant);
+          body.exclude_dishes = current.map((rec) => rec.dish);
         }
 
         const res = await fetch("/api/profile/recommendations", {
@@ -188,7 +206,7 @@ export function ProfileRecommendations({
           {locationEnabled && coords ? (
             <button
               type="button"
-              onClick={() => fetchRecommendations(true, coords)}
+              onClick={() => fetchRecommendations(true, coords, true, data.recommendations)}
               disabled={loading}
               className="mt-4 text-xs text-gray-400 hover:text-hot"
             >
@@ -197,7 +215,7 @@ export function ProfileRecommendations({
           ) : (
             <button
               type="button"
-              onClick={() => fetchRecommendations(false)}
+              onClick={() => fetchRecommendations(false, undefined, true, data.recommendations)}
               disabled={loading}
               className="mt-4 text-xs text-gray-400 hover:text-hot"
             >

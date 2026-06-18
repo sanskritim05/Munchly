@@ -43,6 +43,18 @@ export async function POST(request: Request) {
       score: Number(p.score),
     }));
 
-  const result = await getFoodRecommendations(history, locationLabel);
+  const refresh = body.refresh === true;
+  const excludeRestaurants = Array.isArray(body.exclude_restaurants)
+    ? body.exclude_restaurants.filter((value: unknown) => typeof value === "string")
+    : [];
+  const excludeDishes = Array.isArray(body.exclude_dishes)
+    ? body.exclude_dishes.filter((value: unknown) => typeof value === "string")
+    : [];
+
+  const result = await getFoodRecommendations(history, locationLabel, {
+    refresh,
+    excludeRestaurants,
+    excludeDishes,
+  });
   return NextResponse.json(result);
 }

@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { authEmailUsername, syncAuthEmailForUsername } from "@/lib/username-auth";
 
 export async function POST(request: Request) {
   const user = await getUserFromRequest(request);
@@ -56,6 +57,19 @@ export async function POST(request: Request) {
 
   if (error || !profile) {
     return NextResponse.json({ error: error?.message ?? "Failed to save profile" }, { status: 500 });
+  }
+
+  const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
+  const authUsername = authEmailUsername(authUser?.user?.email);
+
+  if (authUsername !== username) {
+    const { error: syncError } = await syncAuthEmailForUsername(supabase, user.id, username);
+    if (syncError) {
+      return NextResponse.json(
+        { error: "Profile saved but login email could not be updated. Try signing in with your previous username." },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json({ username: profile.username });

@@ -5,6 +5,7 @@ import { ShareCopyLink } from "@/components/ShareCopyLink";
 import { ShareCtaLinks } from "@/components/ShareCtaLinks";
 import { SharePlateCard } from "@/components/SharePlateCard";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { absoluteAppPath, sharePlateUrl } from "@/lib/app-url";
 import { shareScoreColor } from "@/lib/share-card";
 import { getPlateTier } from "@/lib/tiers";
 
@@ -30,19 +31,22 @@ export async function generateMetadata({
   const score = Number(plate?.score ?? 0).toFixed(1);
   const dishName = plate?.dish_name ?? "a plate";
 
+  const shareUrl = sharePlateUrl(params.id);
+
   return {
     title: `@${username}'s ${dishName} scored ${score} | PlateCheck`,
     description: "Hot or not for food photos. Rate this plate or post your own.",
     openGraph: {
       title: `@${username}'s plate scored ${score}/10`,
       description: dishName,
-      images: [`/share/${params.id}/opengraph-image`],
+      url: shareUrl,
+      images: [absoluteAppPath(`/share/${params.id}/opengraph-image`)],
     },
     twitter: {
       card: "summary_large_image",
       title: `@${username}'s plate scored ${score}/10`,
       description: dishName,
-      images: [`/share/${params.id}/opengraph-image`],
+      images: [absoluteAppPath(`/share/${params.id}/opengraph-image`)],
     },
   };
 }
@@ -71,6 +75,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
     Number(profile?.average_score ?? 0),
     profile?.total_plates ?? 0
   ).name;
+  const shareUrl = sharePlateUrl(params.id);
 
   return (
     <div className="min-h-app bg-[#080808] text-white">
@@ -100,7 +105,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           notCount={plate.not_count ?? 0}
         />
 
-        <ShareCopyLink plateId={params.id} />
+        <ShareCopyLink shareUrl={shareUrl} />
 
         <ShareCtaLinks
           plateId={params.id}

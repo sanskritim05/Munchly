@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { usernameAuthEmail } from "@/lib/username-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  authEmailUsername,
+  repairUsernameAuthLogin,
+  syncAuthEmailForUsername,
+  usernameAuthEmail,
+} from "@/lib/username-auth";
 import { isValidUsername, normalizeUsername } from "@/lib/username";
 
 export async function POST(request: Request) {
@@ -23,24 +29,59 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
 
-  const supabase = createClient(url, key, {
+  const signInClient = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: usernameAuthEmail(username),
-    password,
-  });
+  const email = usernameAuthEmail(username);
+  let session =
+    (
+      await signInClient.auth.signInWithPassword({
+        email,
+        password,
+      })
+    ).data.session ?? null;
 
-  if (error || !data.session) {
+  if (!session) {
+    try {
+      const admin = createAdminClient();
+      session = await repairUsernameAuthLogin(admin, signInClient, username, password);
+    } catch {
+      session = null;
+    }
+  }
+
+  if (!session) {
     return NextResponse.json(
       { error: "Wrong username or password" },
       { status: 401 }
     );
   }
 
+  const signedInUsername = authEmailUsername(session.user.email);
+
+  if (signedInUsername) {
+    try {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("username")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (
+        profile?.username &&
+        signedInUsername !== normalizeUsername(profile.username)
+      ) {
+        await syncAuthEmailForUsername(admin, session.user.id, profile.username);
+      }
+    } catch {
+      // Login already succeeded; syncing can happen on the next sign-in.
+    }
+  }
+
   return NextResponse.json({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
   });
 }

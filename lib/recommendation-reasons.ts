@@ -1,5 +1,8 @@
 import type { PlateHistoryItem } from "@/lib/recommendations";
 
+export const RECOMMENDATION_REASON_MAX_WORDS = 15;
+export const RECOMMENDATION_REASON_MIN_WORDS = 8;
+
 const GENERIC_REASON_PATTERNS = [
   /^a well-known pick/i,
   /^a new pick based on your taste/i,
@@ -54,15 +57,9 @@ export function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-export function fitWordCount(text: string, min = 10, max = 11) {
+export function fitWordCount(text: string, max = 15) {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length > max) return words.slice(0, max).join(" ");
-  if (words.length < min) {
-    const padding = ["for", "you", "to", "try"];
-    while (words.length < min && padding.length > 0) {
-      words.push(padding.shift()!);
-    }
-  }
   return words.join(" ");
 }
 
@@ -164,12 +161,15 @@ export function buildDishReason(
 
   if (location && sharedTrait) {
     const localVariant = `Near ${location}, ${dishShort(dish)} matches your taste for ${sharedTrait} comfort food.`;
-    if (wordCount(localVariant) >= 10 && wordCount(localVariant) <= 11) {
+    if (
+      wordCount(localVariant) >= RECOMMENDATION_REASON_MIN_WORDS &&
+      wordCount(localVariant) <= RECOMMENDATION_REASON_MAX_WORDS
+    ) {
       reason = localVariant;
     }
   }
 
-  return fitWordCount(reason, 10, 11);
+  return fitWordCount(reason, RECOMMENDATION_REASON_MAX_WORDS);
 }
 
 function reasonForTrait(
@@ -225,7 +225,7 @@ export function resolveDishReason(
   const cleaned = reason.trim();
   const count = wordCount(cleaned);
 
-  if (!isGenericReason(cleaned) && count >= 10 && count <= 11) {
+  if (!isGenericReason(cleaned) && count >= 1 && count <= RECOMMENDATION_REASON_MAX_WORDS) {
     return cleaned;
   }
 

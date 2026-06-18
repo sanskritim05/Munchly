@@ -37,15 +37,12 @@ export function SharePlateCard({
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
-          <div className="flex items-end gap-1">
-            <span
-              className="font-syne text-7xl font-extrabold leading-none tabular-nums sm:text-8xl"
-              style={{ color: scoreColor }}
-            >
-              {score.toFixed(1)}
-            </span>
-            <span className="mb-2 text-2xl font-medium leading-none text-[#666]">/10</span>
-          </div>
+          <span
+            className="font-syne text-7xl font-extrabold leading-none tabular-nums sm:text-8xl"
+            style={{ color: scoreColor }}
+          >
+            {score.toFixed(1)}
+          </span>
         </div>
       </div>
 

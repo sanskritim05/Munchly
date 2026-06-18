@@ -1,5 +1,10 @@
 import Groq from "groq-sdk";
-import { buildDishReason, resolveDishReason } from "@/lib/recommendation-reasons";
+import {
+  buildDishReason,
+  RECOMMENDATION_REASON_MAX_WORDS,
+  RECOMMENDATION_REASON_MIN_WORDS,
+  resolveDishReason,
+} from "@/lib/recommendation-reasons";
 import { getSignatureDish, isGenericDishName } from "@/lib/signature-dishes";
 import { getUSRestaurants } from "@/lib/us-restaurants";
 
@@ -22,6 +27,21 @@ export interface RecommendationResult {
   taste_summary: string;
   location_label: string | null;
   recommendations: FoodRecommendation[];
+}
+
+export interface RecommendationOptions {
+  refresh?: boolean;
+  excludeRestaurants?: string[];
+  excludeDishes?: string[];
+}
+
+function shuffle<T>(items: T[]) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 function getGroq() {
@@ -56,7 +76,8 @@ function sanitizeRecommendations(
   recs: FoodRecommendation[],
   history: PlateHistoryItem[],
   locationLabel: string | null,
-  limit = RECOMMENDATION_COUNT
+  limit = RECOMMENDATION_COUNT,
+  extraExclude?: { restaurants: Set<string>; dishes: Set<string> }
 ): FoodRecommendation[] {
   const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
   const pastRestaurants = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
@@ -76,6 +97,8 @@ function sanitizeRecommendations(
 
     if (pastDishes.has(dishKey)) continue;
     if (pastRestaurants.has(restaurantKey)) continue;
+    if (extraExclude?.restaurants.has(restaurantKey)) continue;
+    if (extraExclude?.dishes.has(dishKey)) continue;
     if (seenRestaurants.has(restaurantKey)) continue;
     if (seenDishes.has(dishKey)) continue;
 
@@ -95,11 +118,17 @@ function sanitizeRecommendations(
 
 function fallbackRecommendations(
   history: PlateHistoryItem[],
-  locationLabel: string | null
+  locationLabel: string | null,
+  options?: RecommendationOptions
 ): RecommendationResult {
   const visited = new Set(history.map((h) => normalizeKey(h.restaurant_name)));
   const pastDishes = new Set(history.map((h) => normalizeKey(h.dish_name)));
-  const candidates = getUSRestaurants().filter((r) => !visited.has(normalizeKey(r)));
+  const extraExclude = buildExtraExclude(options);
+  let candidates = getUSRestaurants().filter((r) => !visited.has(normalizeKey(r)));
+
+  if (options?.refresh) {
+    candidates = shuffle(candidates);
+  }
 
   const topDishes = history
     .sort((a, b) => b.score - a.score)
@@ -114,8 +143,13 @@ function fallbackRecommendations(
   const recommendations: FoodRecommendation[] = [];
 
   for (const restaurant of candidates) {
+    const restaurantKey = normalizeKey(restaurant);
+    if (extraExclude.restaurants.has(restaurantKey)) continue;
+
     const dish = getSignatureDish(restaurant);
-    if (pastDishes.has(normalizeKey(dish))) continue;
+    const dishKey = normalizeKey(dish);
+    if (pastDishes.has(dishKey)) continue;
+    if (extraExclude.dishes.has(dishKey)) continue;
 
     recommendations.push({
       restaurant,
@@ -137,21 +171,37 @@ function fallbackRecommendations(
 function fillMissingRecommendations(
   current: FoodRecommendation[],
   history: PlateHistoryItem[],
-  locationLabel: string | null
+  locationLabel: string | null,
+  options?: RecommendationOptions
 ): FoodRecommendation[] {
   if (current.length >= RECOMMENDATION_COUNT) {
     return current.slice(0, RECOMMENDATION_COUNT);
   }
 
-  const fallback = fallbackRecommendations(history, locationLabel).recommendations;
-  const merged = sanitizeRecommendations([...current, ...fallback], history, locationLabel, RECOMMENDATION_COUNT);
+  const extraExclude = buildExtraExclude(options);
+  const fallback = fallbackRecommendations(history, locationLabel, options).recommendations;
+  const merged = sanitizeRecommendations(
+    [...current, ...fallback],
+    history,
+    locationLabel,
+    RECOMMENDATION_COUNT,
+    extraExclude
+  );
 
   return merged.slice(0, RECOMMENDATION_COUNT);
 }
 
+function buildExtraExclude(options?: RecommendationOptions) {
+  return {
+    restaurants: new Set((options?.excludeRestaurants ?? []).map(normalizeKey)),
+    dishes: new Set((options?.excludeDishes ?? []).map(normalizeKey)),
+  };
+}
+
 export async function getFoodRecommendations(
   history: PlateHistoryItem[],
-  locationLabel: string | null
+  locationLabel: string | null,
+  options?: RecommendationOptions
 ): Promise<RecommendationResult> {
   if (history.length === 0) {
     return {
@@ -163,10 +213,19 @@ export async function getFoodRecommendations(
   }
 
   if (!process.env.GROQ_API_KEY) {
-    return fallbackRecommendations(history, locationLabel);
+    return fallbackRecommendations(history, locationLabel, options);
   }
 
   const { dishes: avoidDishes, restaurants: avoidRestaurants } = buildAvoidLists(history);
+  const extraExclude = buildExtraExclude(options);
+  const refreshContext = options?.refresh
+    ? `
+The user tapped refresh and wants completely different picks.
+Do NOT recommend any of these recently shown restaurants: ${
+        options.excludeRestaurants?.join(", ") || "none"
+      }
+Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.join(", ") || "none"}`
+    : "";
 
   const historyText = history
     .map(
@@ -183,7 +242,7 @@ export async function getFoodRecommendations(
   try {
     const response = await getGroq().chat.completions.create({
       model: "llama-3.3-70b-versatile",
-      temperature: 0.75,
+      temperature: options?.refresh ? 0.95 : 0.75,
       max_tokens: 650,
       messages: [
         {
@@ -193,7 +252,7 @@ Return ONLY valid JSON, no markdown:
 {
   "taste_summary": string (one short sentence about their taste, not listing their past orders),
   "recommendations": [
-    { "restaurant": string, "dish": string, "reason": string (exactly 10 or 11 words) }
+    { "restaurant": string, "dish": string, "reason": string (max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
   ]
 }
 
@@ -208,7 +267,7 @@ Rules:
 - Use real US restaurant chains or widely known restaurant names
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
-- Each reason must be exactly 10 or 11 words
+- Each reason must be at most ${RECOMMENDATION_REASON_MAX_WORDS} words
 - Reasons must name a concrete link: spice level, protein, texture, cuisine, or cooking style
 - Reference a specific dish from their history when explaining the match
 - Never say "flavor notes", "hit the same", "familiar yet fresh", or "smart next order"
@@ -220,6 +279,7 @@ Rules:
           role: "user",
           content: `Mode: ${mode}
 ${locationContext}
+${refreshContext}
 
 Their plate history (for taste profile only — do NOT recommend these again):
 ${historyText}
@@ -237,7 +297,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
 
     const text = response.choices[0]?.message?.content?.trim() ?? "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return fallbackRecommendations(history, locationLabel);
+    if (!jsonMatch) return fallbackRecommendations(history, locationLabel, options);
 
     const parsed = JSON.parse(jsonMatch[0]) as {
       taste_summary?: string;
@@ -251,13 +311,14 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     }));
 
     const recommendations = fillMissingRecommendations(
-      sanitizeRecommendations(raw, history, locationLabel),
+      sanitizeRecommendations(raw, history, locationLabel, RECOMMENDATION_COUNT, extraExclude),
       history,
-      locationLabel
+      locationLabel,
+      options
     );
 
     if (recommendations.length === 0) {
-      return fallbackRecommendations(history, locationLabel);
+      return fallbackRecommendations(history, locationLabel, options);
     }
 
     return {
@@ -269,6 +330,6 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
       recommendations,
     };
   } catch {
-    return fallbackRecommendations(history, locationLabel);
+    return fallbackRecommendations(history, locationLabel, options);
   }
 }

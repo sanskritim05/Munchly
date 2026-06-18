@@ -1,23 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { track } from "@/lib/analytics";
 
-export function ShareCopyLink({ plateId }: { plateId: string }) {
-  const [shareUrl, setShareUrl] = useState("");
+export function ShareCopyLink({ shareUrl }: { shareUrl: string }) {
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    setShareUrl(`${window.location.origin}/share/${plateId}`);
-  }, [plateId]);
-
   async function copyLink() {
-    const url = shareUrl || `${window.location.origin}/share/${plateId}`;
-
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      void track("share_link_copied", { plate_id: plateId });
+      void track("share_link_copied", { plate_id: shareUrl.split("/").pop() });
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       // ignore

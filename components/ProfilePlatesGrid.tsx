@@ -52,14 +52,14 @@ export function ProfilePlatesGrid({
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-2">
               <ScoreBadge score={Number(plate.score)} size="sm" />
-              {plate.dish_name ? (
+              {plate.restaurant_name ? (
                 <p className="mt-1 truncate text-xs font-bold leading-tight text-white">
-                  {plate.dish_name}
+                  {plate.restaurant_name}
                 </p>
               ) : null}
-              {plate.restaurant_name ? (
+              {plate.dish_name ? (
                 <p className="truncate text-[10px] leading-tight text-gray-300">
-                  {plate.restaurant_name}
+                  {plate.dish_name}
                 </p>
               ) : null}
             </div>

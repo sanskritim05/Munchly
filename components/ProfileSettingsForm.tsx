@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { ThemeSetting } from "@/components/ThemeSetting";
 import { useAuth } from "@/components/AuthProvider";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import {
   canChangeIdentity,
@@ -132,6 +133,10 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to save profile");
+
+      if (cleanUsername !== initial.username) {
+        await createBrowserClient().auth.refreshSession();
+      }
 
       router.push(`/profile/${data.profile.username}`);
       router.refresh();
