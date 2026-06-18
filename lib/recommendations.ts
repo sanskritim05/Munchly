@@ -84,7 +84,7 @@ function sanitizeRecommendations(
     cleaned.push({
       restaurant,
       dish,
-      reason: resolveDishReason(reason, dish, history, locationLabel),
+      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel),
     });
 
     if (cleaned.length >= limit) break;
@@ -120,7 +120,7 @@ function fallbackRecommendations(
     recommendations.push({
       restaurant,
       dish,
-      reason: buildDishReason(dish, history, locationLabel),
+      reason: buildDishReason(dish, restaurant, history, locationLabel),
     });
 
     if (recommendations.length >= RECOMMENDATION_COUNT) break;
@@ -209,9 +209,12 @@ Rules:
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
 - Plain English, no emojis, no em dashes
 - Each reason must be exactly 10 or 11 words
-- Reasons must explain why this specific dish fits their taste profile
-- Never use generic reasons like "well-known pick" or "fits your taste profile"
-- Reference patterns from their ratings, similar flavors, or nearby picks when relevant`,
+- Reasons must name a concrete link: spice level, protein, texture, cuisine, or cooking style
+- Reference a specific dish from their history when explaining the match
+- Never say "flavor notes", "hit the same", "familiar yet fresh", or "smart next order"
+- Bad: "You loved Yogurt Kabab, so Bourbon Street should hit the same flavor notes."
+- Good: "Your spiced grilled kabobs suggest this Cajun steak's bold char will appeal."
+- Good: "You rate tangy yogurt-marinated meats high; try this blackened Cajun ribeye next."`,
         },
         {
           role: "user",

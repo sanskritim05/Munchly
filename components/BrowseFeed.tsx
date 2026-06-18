@@ -72,7 +72,7 @@ export function BrowseFeed() {
   if (plates.length === 0) {
     return (
       <FeedViewportEmpty
-        title="No posts yet"
+        title="no posts yet"
         description="When others post plates, you can browse them here."
       >
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

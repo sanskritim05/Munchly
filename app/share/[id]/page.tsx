@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShareAnalyticsTracker } from "@/components/ShareAnalyticsTracker";
+import { ShareCopyLink } from "@/components/ShareCopyLink";
 import { ShareCtaLinks } from "@/components/ShareCtaLinks";
 import { SharePlateCard } from "@/components/SharePlateCard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shareScoreColor } from "@/lib/share-card";
+import { getPlateTier } from "@/lib/tiers";
 
 async function getPlate(id: string) {
   const supabase = createAdminClient();
   const { data: plate } = await supabase
     .from("plates")
-    .select("*, profiles!plates_user_id_fkey(username)")
+    .select("*, profiles!plates_user_id_fkey(username, average_score, total_plates)")
     .eq("id", id)
     .single();
 
@@ -65,6 +67,10 @@ export default async function SharePage({ params }: { params: { id: string } }) 
   const username = profile?.username ?? "foodie";
   const score = Number(plate.score);
   const scoreColor = shareScoreColor(score);
+  const tierLabel = getPlateTier(
+    Number(profile?.average_score ?? 0),
+    profile?.total_plates ?? 0
+  ).name;
 
   return (
     <div className="min-h-app bg-[#080808] text-white">
@@ -89,9 +95,12 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           score={score}
           dishName={plate.dish_name ?? "Mystery Dish"}
           username={username}
+          tierLabel={tierLabel}
           hotCount={plate.hot_count ?? 0}
           notCount={plate.not_count ?? 0}
         />
+
+        <ShareCopyLink plateId={params.id} />
 
         <ShareCtaLinks
           plateId={params.id}

@@ -71,8 +71,10 @@ export default async function ProfilePage({
           <p className="text-xs text-gray-400">Plates</p>
         </div>
         <div>
-          <p className="text-2xl font-bold">{avgScore.toFixed(1)}</p>
-          <p className="text-xs text-gray-400">Avg Score</p>
+          <div className="flex justify-center">
+            <ScoreBadge score={avgScore} size="sm" />
+          </div>
+          <p className="mt-1 text-xs text-gray-400">Avg Score</p>
         </div>
         <div>
           <p className="text-2xl font-bold">{profile.follower_count}</p>

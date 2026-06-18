@@ -7,6 +7,10 @@ import {
 } from "@/lib/profile-identity";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  updateAuthUsernameEmail,
+  usernameAuthErrorMessage,
+} from "@/lib/username-auth";
 
 export async function PATCH(request: Request) {
   const user = await getUserFromRequest(request);
@@ -68,6 +72,17 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Username already taken" }, { status: 409 });
   }
 
+  if (usernameChanging) {
+    const { error: authError } = await updateAuthUsernameEmail(supabase, user.id, username);
+
+    if (authError) {
+      return NextResponse.json(
+        { error: usernameAuthErrorMessage(authError.message) },
+        { status: 409 }
+      );
+    }
+  }
+
   const { data: profile, error } = await supabase
     .from("profiles")
     .update({
@@ -82,6 +97,10 @@ export async function PATCH(request: Request) {
     .single();
 
   if (error || !profile) {
+    if (usernameChanging) {
+      await updateAuthUsernameEmail(supabase, user.id, current.username);
+    }
+
     return NextResponse.json({ error: error?.message ?? "Failed to update profile" }, { status: 500 });
   }
 

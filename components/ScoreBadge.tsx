@@ -3,9 +3,11 @@ import { scoreColor } from "@/lib/scores";
 export function ScoreBadge({
   score,
   size = "md",
+  className = "",
 }: {
   score: number;
   size?: "sm" | "md" | "lg";
+  className?: string;
 }) {
   const color = scoreColor(score);
   const sizeClass =
@@ -13,7 +15,7 @@ export function ScoreBadge({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-bold text-white ${sizeClass}`}
+      className={`inline-flex items-center rounded-full font-bold text-white shadow-md ring-1 ring-black/30 ${sizeClass} ${className}`}
       style={{ backgroundColor: color }}
     >
       {score.toFixed(1)}

@@ -246,7 +246,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   if (!authLoading && !registered) {
     return (
       <FeedSignInPrompt
-        title={scope === "following" ? "Sign in to see Following" : "Sign in to rate plates"}
+        title={scope === "following" ? "sign in to see Following" : "sign in to rate plates"}
         description="Browse posts for free. Create an account to swipe hot or not."
       />
     );
@@ -271,7 +271,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
     return (
       <FeedViewportEmpty
-        title={caughtUp ? "You've seen everything" : "Nothing to rate yet"}
+        title={caughtUp ? "you've seen everything" : "nothing to rate yet"}
         description={
           caughtUp
             ? "Switch to Browse to see all posts and leave comments."
@@ -285,7 +285,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
             disabled={refreshing}
             className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
           >
-            {refreshing ? "Refreshing..." : "Refresh"}
+            {refreshing ? "refreshing..." : "refresh"}
           </button>
           <Link
             href="/post"
