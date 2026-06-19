@@ -32,6 +32,7 @@ export function PostPlateForm() {
   const [error, setError] = useState("");
   const [dailyLimitReached, setDailyLimitReached] = useState(false);
   const [checkingLimit, setCheckingLimit] = useState(true);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -122,6 +123,16 @@ export function PostPlateForm() {
   function onCropCancel() {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
+  }
+
+  function openCamera() {
+    setShowPhotoOptions(false);
+    cameraRef.current?.click();
+  }
+
+  function openUpload() {
+    setShowPhotoOptions(false);
+    uploadRef.current?.click();
   }
 
   async function onSubmit(e: FormEvent) {
@@ -227,32 +238,19 @@ export function PostPlateForm() {
       </div>
 
       <div className="mx-auto w-full max-w-sm space-y-4">
-        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface">
+        <button
+          type="button"
+          onClick={() => setShowPhotoOptions(true)}
+          disabled={loading}
+          aria-label={preview ? "Change plate photo" : "Add plate photo"}
+          className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface disabled:opacity-50"
+        >
           {preview ? (
             <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
           ) : (
             <AppIcon kind="post" size={80} />
           )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => cameraRef.current?.click()}
-            disabled={loading}
-            className="rounded-2xl border border-border bg-surface py-3 text-sm font-semibold disabled:opacity-50"
-          >
-            Take photo
-          </button>
-          <button
-            type="button"
-            onClick={() => uploadRef.current?.click()}
-            disabled={loading}
-            className="rounded-2xl border border-border bg-surface py-3 text-sm font-semibold disabled:opacity-50"
-          >
-            Upload photo
-          </button>
-        </div>
+        </button>
 
         <input
           ref={cameraRef}
@@ -311,6 +309,48 @@ export function PostPlateForm() {
           shape="square"
           filename="plate.jpg"
         />
+      ) : null}
+
+      {showPhotoOptions ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          onClick={() => setShowPhotoOptions(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface p-4"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-options-title"
+          >
+            <p id="photo-options-title" className="mb-4 text-center text-sm font-semibold">
+              Add a plate photo
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={openCamera}
+                className="w-full rounded-2xl bg-hot py-3 font-semibold"
+              >
+                Take photo
+              </button>
+              <button
+                type="button"
+                onClick={openUpload}
+                className="w-full rounded-2xl border border-border bg-surface py-3 font-semibold"
+              >
+                Upload photo
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPhotoOptions(false)}
+                className="w-full py-2 text-sm text-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </form>
   );
