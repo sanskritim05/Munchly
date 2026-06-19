@@ -42,10 +42,25 @@ export function RestaurantAutocomplete({
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const committedSelectionRef = useRef<string | null>(null);
+  const skipSearchRef = useRef(false);
 
   useEffect(() => {
     const q = value.trim();
     if (q.length < 1) {
+      setSuggestions([]);
+      setOpen(false);
+      setActiveIndex(-1);
+      committedSelectionRef.current = null;
+      return;
+    }
+
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
+
+    if (committedSelectionRef.current === q) {
       setSuggestions([]);
       setOpen(false);
       setActiveIndex(-1);
@@ -91,9 +106,17 @@ export function RestaurantAutocomplete({
 
   function selectSuggestion(name: string) {
     if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    skipSearchRef.current = true;
+    committedSelectionRef.current = name;
     onChange(name);
+    setSuggestions([]);
     setOpen(false);
     setActiveIndex(-1);
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    committedSelectionRef.current = null;
+    onChange(e.target.value.slice(0, 80));
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -127,10 +150,7 @@ export function RestaurantAutocomplete({
     <div ref={containerRef} className="relative w-full">
       <input
         value={value}
-        onChange={(e) => onChange(e.target.value.slice(0, 80))}
-        onFocus={() => {
-          if (suggestions.length > 0) setOpen(true);
-        }}
+        onChange={handleInputChange}
         onBlur={() => {
           blurTimeout.current = setTimeout(() => setOpen(false), 150);
         }}

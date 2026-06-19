@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const LEADERBOARD_LIMIT = 10;
+export const LEADERBOARD_LIMIT = 5;
 export const LEADERBOARD_LOOKBACK_DAYS = 7;
 export const LEADERBOARD_MIN_VOTES = 3;
 export const LEADERBOARD_FALLBACK_MIN_VOTES = 1;

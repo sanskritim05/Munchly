@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+function shuffle<T>(items: T[]) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 async function getFollowingIds(supabase: ReturnType<typeof createAdminClient>, userId: string) {
   const { data } = await supabase
     .from("follows")
@@ -100,15 +109,13 @@ export async function GET(request: Request) {
     )
     .eq("is_active", true)
     .neq("user_id", user.id)
-    .order("created_at", { ascending: false })
     .limit(100);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const plates = (data ?? [])
-    .filter((p) => !ratedSet.has(p.id))
+  const plates = shuffle((data ?? []).filter((p) => !ratedSet.has(p.id)))
     .slice(0, 30)
     .map((p) => {
       const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
