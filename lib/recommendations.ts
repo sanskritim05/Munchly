@@ -1,4 +1,8 @@
-import Groq from "groq-sdk";
+import {
+  createGroqClient,
+  GROQ_TASTE_PICKS_MODEL,
+  hasGroqKey,
+} from "@/lib/groq-config";
 import {
   buildDishReason,
   buildTasteSummaryFromHistory,
@@ -46,10 +50,6 @@ function shuffle<T>(items: T[]) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
-}
-
-function getGroq() {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY! });
 }
 
 function cleanText(text: string) {
@@ -159,13 +159,11 @@ function sanitizeRecommendations(
     cleaned.push({
       restaurant,
       dish,
-      reason: sanitizeReason(
-        resolveDishReason(reason, restaurant, dish, history, locationLabel, {
-          pickIndex,
-          usedReasons,
-          usedAnchors,
-        })
-      ),
+      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel, {
+        pickIndex,
+        usedReasons,
+        usedAnchors,
+      }),
     });
     pickIndex += 1;
 
@@ -209,13 +207,11 @@ function fallbackRecommendations(
     recommendations.push({
       restaurant,
       dish,
-      reason: sanitizeReason(
-        buildDishReason(dish, restaurant, history, locationLabel, {
-          pickIndex,
-          usedReasons,
-          usedAnchors,
-        })
-      ),
+      reason: buildDishReason(dish, restaurant, history, locationLabel, {
+        pickIndex,
+        usedReasons,
+        usedAnchors,
+      }),
     });
     pickIndex += 1;
 
@@ -274,7 +270,7 @@ export async function getFoodRecommendations(
     };
   }
 
-  if (!process.env.GROQ_API_KEY) {
+  if (!hasGroqKey()) {
     return fallbackRecommendations(history, locationLabel, options);
   }
 
@@ -299,8 +295,8 @@ Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.jo
     : "No location shared. Recommend real US restaurant chains or widely known restaurants.";
 
   try {
-    const response = await getGroq().chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const response = await createGroqClient().chat.completions.create({
+      model: GROQ_TASTE_PICKS_MODEL,
       temperature: options?.refresh ? 0.95 : 0.75,
       max_tokens: 650,
       messages: [

@@ -6,7 +6,7 @@ Hot or Not for food photos. Post your meal, get rated, share your score card.
 
 - Next.js 14 (App Router) + TypeScript + Tailwind
 - Supabase (auth, Postgres, storage, realtime)
-- Groq API (`llama-3.3-70b-versatile`) for dish names + roasts
+- Groq API (`llama-3.3-70b-versatile`) for profile taste picks only
 - Framer Motion swipe gestures
 - Deploy on Vercel (free tier)
 
@@ -33,7 +33,7 @@ Hot or Not for food photos. Post your meal, get rated, share your score card.
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `GROQ_API_KEY` (free at [console.groq.com](https://console.groq.com))
+   - `GROQ_API_KEY` (free, no credit card — [console.groq.com](https://console.groq.com); powers taste picks only)
 
 4. **Run locally**
 

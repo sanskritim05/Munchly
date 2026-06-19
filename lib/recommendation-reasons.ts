@@ -283,14 +283,65 @@ export function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+const DANGLING_TAIL =
+  /^(is|are|was|were|be|been|being|a|an|the|and|or|at|to|for|with|your|you|new|pick|try|like|post|posts|&)$/i;
+const DANGLING_TAIL_TWO =
+  /^(is a|is an|a new|at the|should be|could be|will be|has a|have a)$/i;
+
+function appendPeriod(text: string) {
+  const trimmed = text.trim().replace(/[.,;]+$/, "");
+  if (!trimmed) return trimmed;
+  if (/[!?]$/.test(trimmed)) return trimmed;
+  return `${trimmed}.`;
+}
+
+export function isReasonComplete(reason: string) {
+  const trimmed = reason.trim().replace(/[.!?]+$/, "");
+  if (wordCount(trimmed) < 4) return false;
+  if (trimmed.endsWith("&")) return false;
+
+  const words = trimmed.split(/\s+/);
+  const last = words[words.length - 1].toLowerCase();
+  const lastTwo = words.slice(-2).join(" ").toLowerCase();
+
+  if (DANGLING_TAIL.test(last)) return false;
+  if (DANGLING_TAIL_TWO.test(lastTwo)) return false;
+
+  return true;
+}
+
+export function finalizeReason(
+  text: string,
+  max = RECOMMENDATION_REASON_MAX_WORDS
+): string | null {
+  const cleaned = text.replace(/[—–]/g, "-").trim();
+  if (!cleaned) return null;
+
+  if (wordCount(cleaned) <= max && isReasonComplete(cleaned)) {
+    return appendPeriod(cleaned);
+  }
+
+  const semicolon = cleaned.indexOf(";");
+  if (semicolon > 0) {
+    const firstClause = cleaned.slice(0, semicolon).trim();
+    if (
+      wordCount(firstClause) <= max &&
+      wordCount(firstClause) >= 4 &&
+      isReasonComplete(firstClause)
+    ) {
+      return appendPeriod(firstClause);
+    }
+  }
+
+  return null;
+}
+
 export function fitWordCount(text: string, max = RECOMMENDATION_REASON_MAX_WORDS) {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length > max) return words.slice(0, max).join(" ");
-  return words.join(" ");
+  return finalizeReason(text, max) ?? "";
 }
 
 export function sanitizeReason(reason: string, max = RECOMMENDATION_REASON_MAX_WORDS) {
-  return fitWordCount(reason.replace(/[—–]/g, "-").trim(), max);
+  return finalizeReason(reason, max) ?? "";
 }
 
 export function isGenericReason(reason: string) {
@@ -299,7 +350,7 @@ export function isGenericReason(reason: string) {
   return GENERIC_REASON_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
-function dishLabel(name: string, maxWords = 4) {
+function dishLabel(name: string, maxWords = 3) {
   const cleaned = name
     .replace(/[,;|]/g, " ")
     .replace(/\s+/g, " ")
@@ -308,8 +359,56 @@ function dishLabel(name: string, maxWords = 4) {
   return words.slice(0, maxWords).join(" ");
 }
 
-function restaurantLabel(name: string, maxWords = 3) {
-  return dishLabel(name, maxWords);
+function restaurantLabel(name: string) {
+  const cleaned = name
+    .replace(/[,;|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = cleaned.split(" ").filter(Boolean);
+  if (words.length === 0) return "this spot";
+  if (words.length === 1) return words[0];
+
+  const first = words[0];
+  if (first.toLowerCase() === "the" && words.length > 1) {
+    return words.slice(0, 2).join(" ");
+  }
+
+  const twoWord = words.slice(0, 2).join(" ");
+  if (twoWord.length <= 14 && !twoWord.includes("&")) {
+    return twoWord;
+  }
+
+  return first;
+}
+
+function buildCompactReason(
+  dish: string,
+  restaurant: string,
+  theme: string,
+  pickIndex: number,
+  anchorDish?: string
+) {
+  const dishShort = dishLabel(dish, 3);
+  const restShort = restaurantLabel(restaurant);
+  const anchorShort = anchorDish ? dishLabel(anchorDish, 2) : null;
+
+  const options = [
+    `You post ${theme} food; try ${dishShort}.`,
+    `Your ${theme} posts point to ${dishShort}.`,
+    `${dishShort} fits your ${theme} plate pattern.`,
+    `Try ${dishShort} at ${restShort} next.`,
+    anchorShort ? `Like your ${anchorShort} order, try ${dishShort}.` : null,
+    `${dishShort} should match what you share.`,
+    `Based on your posts, ${dishShort} is worth trying.`,
+  ].filter(Boolean) as string[];
+
+  for (let offset = 0; offset < options.length; offset++) {
+    const candidate = options[(pickIndex + offset) % options.length];
+    const finalized = finalizeReason(candidate);
+    if (finalized) return finalized;
+  }
+
+  return appendPeriod(`Try ${dishShort}`);
 }
 
 type FoodStyle = "fresh" | "breakfast" | "sweet" | "asian" | "comfort";
@@ -674,11 +773,12 @@ function chooseUniqueReason(
     const builder = pickVariant(builders, pickIndex, offset);
     if (!builder) continue;
 
-    const reason = fitWordCount(builder(anchorDish, dish, restaurant), RECOMMENDATION_REASON_MAX_WORDS);
-    if (!isTooSimilar(reason, usedReasons) && !isGenericReason(reason)) {
-      usedReasons.add(reasonSignature(reason));
-      return reason;
+    const reason = finalizeReason(builder(anchorDish, dish, restaurant));
+    if (!reason || isTooSimilar(reason, usedReasons) || isGenericReason(reason)) {
+      continue;
     }
+    usedReasons.add(reasonSignature(reason));
+    return reason;
   }
 
   return null;
@@ -888,19 +988,20 @@ export function buildDishReason(
   }
 
   for (const reason of candidates) {
-    const fitted = fitWordCount(reason, RECOMMENDATION_REASON_MAX_WORDS);
-    if (!fitted || isGenericReason(fitted) || isTooSimilar(fitted, usedReasons)) continue;
-    usedReasons.add(reasonSignature(fitted));
-    return fitted;
+    const finalized = finalizeReason(reason);
+    if (!finalized || isGenericReason(finalized) || isTooSimilar(finalized, usedReasons)) {
+      continue;
+    }
+    usedReasons.add(reasonSignature(finalized));
+    return finalized;
   }
 
-  const fallback = fitWordCount(
-    anchorPost
-      ? anchorDessert && !dishDessert
-        ? `You post sweets like ${dishLabel(anchorDish)}; ${dishLabel(dish)} is a savory change of pace.`
-        : `You often post ${theme} food; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a new pick.`
-      : `You often post ${theme} dishes; ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is worth trying.`,
-    RECOMMENDATION_REASON_MAX_WORDS
+  const fallback = buildCompactReason(
+    dish,
+    restaurant,
+    theme,
+    pickIndex,
+    anchorPost ? anchorDish : undefined
   );
   usedReasons.add(reasonSignature(fallback));
   return fallback;
@@ -914,16 +1015,13 @@ export function resolveDishReason(
   locationLabel: string | null,
   options?: ReasonBuildOptions
 ) {
-  const cleaned = sanitizeReason(reason);
-  const count = wordCount(cleaned);
+  const cleaned = finalizeReason(reason);
   const usedReasons = options?.usedReasons ?? new Set<string>();
 
   if (
     cleaned &&
     !isGenericReason(cleaned) &&
-    !isTooSimilar(cleaned, usedReasons) &&
-    count >= 1 &&
-    count <= RECOMMENDATION_REASON_MAX_WORDS
+    !isTooSimilar(cleaned, usedReasons)
   ) {
     usedReasons.add(reasonSignature(cleaned));
     return cleaned;

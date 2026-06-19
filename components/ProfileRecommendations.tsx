@@ -25,7 +25,7 @@ interface TastePicksCache {
 }
 
 function tastePicksCacheKey(userId: string) {
-  return `platecheck-taste-picks:${userId}`;
+  return `platecheck-taste-picks:v2:${userId}`;
 }
 
 function readTastePicksCache(userId: string, plateCount: number): TastePicksCache | null {
