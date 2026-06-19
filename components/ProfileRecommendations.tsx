@@ -25,7 +25,7 @@ interface TastePicksCache {
 }
 
 function tastePicksCacheKey(userId: string) {
-  return `platecheck-taste-picks:v2:${userId}`;
+  return `platecheck-taste-picks:v3:${userId}`;
 }
 
 function readTastePicksCache(userId: string, plateCount: number): TastePicksCache | null {
@@ -265,8 +265,7 @@ export function ProfileRecommendations({
 
       {data && hydrated && !loading ? (
         <>
-          <p className="mt-4 break-words text-sm leading-relaxed text-gray-300">{data.taste_summary}</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="text-xs text-gray-500">
             {data.mode === "nearby" && data.location_label
               ? `Exploring near ${data.location_label}`
               : "Based on what you've posted"}

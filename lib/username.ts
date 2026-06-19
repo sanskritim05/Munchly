@@ -1,3 +1,5 @@
+import { containsUsernameProfanity, PROFANITY_USERNAME_MESSAGE } from "@/lib/username-profanity";
+
 export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export const RESERVED_USERNAME_MESSAGE = "This username is reserved";
@@ -101,6 +103,10 @@ export function getUsernameError(value: string, options?: UsernameValidationOpti
 
   if (isReservedUsername(normalized)) {
     return RESERVED_USERNAME_MESSAGE;
+  }
+
+  if (containsUsernameProfanity(normalized)) {
+    return PROFANITY_USERNAME_MESSAGE;
   }
 
   if (isExactBrandUsername(normalized) && !options?.allowBrandUsername) {

@@ -6,6 +6,7 @@ import {
 import {
   buildDishReason,
   buildTasteSummaryFromHistory,
+  getPickStyleKey,
   RECOMMENDATION_REASON_MAX_WORDS,
   RECOMMENDATION_REASON_MIN_WORDS,
   resolveDishReason,
@@ -72,12 +73,8 @@ function buildTasteSummary(history: PlateHistoryItem[]) {
   return buildTasteSummaryFromHistory(history);
 }
 
-function sanitizeTasteSummary(summary: string | undefined, history: PlateHistoryItem[]) {
-  const cleaned = cleanText(summary || "");
-  if (!cleaned || /rated|you seem to like|score/i.test(cleaned)) {
-    return buildTasteSummary(history);
-  }
-  return cleaned;
+function sanitizeTasteSummary(_summary: string | undefined, history: PlateHistoryItem[]) {
+  return buildTasteSummary(history);
 }
 
 function buildAvoidLists(history: PlateHistoryItem[]) {
@@ -189,10 +186,12 @@ function fallbackRecommendations(
 
   const taste_summary = buildTasteSummary(history);
 
-  const recommendations: FoodRecommendation[] = [];
-  const usedReasons = new Set<string>();
-  const usedAnchors = new Set<string>();
-  let pickIndex = 0;
+  const pool: {
+    restaurant: string;
+    dish: string;
+    score: number;
+    styleKey: string;
+  }[] = [];
 
   for (const restaurant of candidates) {
     const restaurantKey = normalizeKey(restaurant);
@@ -204,18 +203,51 @@ function fallbackRecommendations(
     if (extraExclude.dishes.has(dishKey)) continue;
     if (!shouldRecommendPick(history, dish, restaurant)) continue;
 
-    recommendations.push({
+    pool.push({
       restaurant,
       dish,
-      reason: buildDishReason(dish, restaurant, history, locationLabel, {
+      score: scorePickForHistory(history, dish, restaurant),
+      styleKey: getPickStyleKey(dish, restaurant),
+    });
+  }
+
+  pool.sort((a, b) => b.score - a.score);
+
+  const recommendations: FoodRecommendation[] = [];
+  const usedReasons = new Set<string>();
+  const usedAnchors = new Set<string>();
+  const usedStyles = new Set<string>();
+  const usedRestaurantKeys = new Set<string>();
+  let pickIndex = 0;
+
+  function addPick(entry: (typeof pool)[number]) {
+    const restaurantKey = normalizeKey(entry.restaurant);
+    if (usedRestaurantKeys.has(restaurantKey)) return false;
+
+    recommendations.push({
+      restaurant: entry.restaurant,
+      dish: entry.dish,
+      reason: buildDishReason(entry.dish, entry.restaurant, history, locationLabel, {
         pickIndex,
         usedReasons,
         usedAnchors,
       }),
     });
+    usedRestaurantKeys.add(restaurantKey);
+    usedStyles.add(entry.styleKey);
     pickIndex += 1;
+    return true;
+  }
 
+  for (const entry of pool) {
     if (recommendations.length >= RECOMMENDATION_COUNT) break;
+    if (usedStyles.has(entry.styleKey) && usedStyles.size < RECOMMENDATION_COUNT) continue;
+    addPick(entry);
+  }
+
+  for (const entry of pool) {
+    if (recommendations.length >= RECOMMENDATION_COUNT) break;
+    addPick(entry);
   }
 
   return {
@@ -305,14 +337,19 @@ Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.jo
           content: `You are a food recommendation assistant for PlateCheck.
 Return ONLY valid JSON, no markdown:
 {
-  "taste_summary": string (one short sentence about what they post, not ratings),
+  "taste_summary": string (optional, leave empty),
   "recommendations": [
     { "restaurant": string, "dish": string, "reason": string (STRICT max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
   ]
 }
 
 Rules:
-- Give exactly ${RECOMMENDATION_COUNT} recommendations
+- Give exactly ${RECOMMENDATION_COUNT} recommendations with varied cuisines and styles across the three picks
+- Do not make all three picks revolve around one trait like creamy, pasta, or chicken unless the user's history is extremely narrow
+- Look at the user's full posting history holistically, not just their latest dish or one repeated trait
+- Each reason must be a complete sentence of ${RECOMMENDATION_REASON_MAX_WORDS} words or fewer. Never exceed ${RECOMMENDATION_REASON_MAX_WORDS} words.
+- Do not repeat the recommended dish name in the reason; the UI already shows the dish separately
+- Leave taste_summary as an empty string
 - The user has POSTED food photos with what they ordered. They have NOT personally rated anything.
 - Plate scores in history are community ratings on their posts, NOT the user's own ratings. Never mention scores or ratings.
 - Use language like "posted", "ordered", "shared" — never "rated", "scored", "loved highly", or "you seem to like"
@@ -331,8 +368,6 @@ Rules:
 - Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
 - Never claim a posted dish has a trait it does not obviously have
 - Match the course and style of what they post. If they post desserts like donuts, pick bakeries, ice cream, or sweet menu items, not savory bowls or chicken entrees
-- Weight recent posts more heavily than older ones when inferring taste
-- If recent posts are pasta, noodles, or savory Italian dishes, recommend similar hearty spots, not ice cream or cookie shops
 - Base each reason on the user's overall posting patterns, not just their single latest dish
 - Use different posted dishes across the three reasons when they genuinely connect to each pick
 - Do not recommend a savory bowl or entree for a dessert post unless the reason clearly says it is a deliberate savory stretch

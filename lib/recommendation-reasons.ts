@@ -289,7 +289,7 @@ const DANGLING_TAIL_TWO =
   /^(is a|is an|a new|at the|should be|could be|will be|has a|have a)$/i;
 
 function appendPeriod(text: string) {
-  const trimmed = text.trim().replace(/[.,;]+$/, "");
+  const trimmed = text.trim().replace(/[.,;!?\s]+$/g, "").trim();
   if (!trimmed) return trimmed;
   if (/[!?]$/.test(trimmed)) return trimmed;
   return `${trimmed}.`;
@@ -350,13 +350,18 @@ export function isGenericReason(reason: string) {
   return GENERIC_REASON_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
-function dishLabel(name: string, maxWords = 3) {
+const LABEL_STOP_WORDS = new Set(["with", "and", "the", "a", "an", "or", "of", "&", "in", "on"]);
+
+function dishLabel(name: string, maxWords = 4) {
   const cleaned = name
     .replace(/[,;|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const words = cleaned.split(" ").filter(Boolean);
-  return words.slice(0, maxWords).join(" ");
+  let words = cleaned.split(" ").filter(Boolean).slice(0, maxWords);
+  while (words.length > 1 && LABEL_STOP_WORDS.has(words[words.length - 1].toLowerCase())) {
+    words.pop();
+  }
+  return words.join(" ") || cleaned.split(" ")[0] || "this dish";
 }
 
 function restaurantLabel(name: string) {
@@ -382,24 +387,24 @@ function restaurantLabel(name: string) {
 }
 
 function buildCompactReason(
-  dish: string,
+  _dish: string,
   restaurant: string,
   theme: string,
   pickIndex: number,
   anchorDish?: string
 ) {
-  const dishShort = dishLabel(dish, 3);
   const restShort = restaurantLabel(restaurant);
   const anchorShort = anchorDish ? dishLabel(anchorDish, 2) : null;
 
   const options = [
-    `You post ${theme} food; try ${dishShort}.`,
-    `Your ${theme} posts point to ${dishShort}.`,
-    `${dishShort} fits your ${theme} plate pattern.`,
-    `Try ${dishShort} at ${restShort} next.`,
-    anchorShort ? `Like your ${anchorShort} order, try ${dishShort}.` : null,
-    `${dishShort} should match what you share.`,
-    `Based on your posts, ${dishShort} is worth trying.`,
+    `Fits the variety of plates on your profile.`,
+    `A new spot that matches your overall taste.`,
+    `Adds variety while staying close to what you post.`,
+    `Another pick that stretches your lineup nicely.`,
+    `Worth trying at ${restShort} for something different.`,
+    `Complements the range of food you've shared.`,
+    anchorShort ? `Echoes your ${anchorShort} order in a fresh way.` : null,
+    theme ? `Connects to your ${theme} posts without repeating old spots.` : null,
   ].filter(Boolean) as string[];
 
   for (let offset = 0; offset < options.length; offset++) {
@@ -408,7 +413,7 @@ function buildCompactReason(
     if (finalized) return finalized;
   }
 
-  return appendPeriod(`Try ${dishShort}`);
+  return appendPeriod(`A solid new pick from ${restShort}.`);
 }
 
 type FoodStyle = "fresh" | "breakfast" | "sweet" | "asian" | "comfort";
@@ -585,23 +590,26 @@ export function buildTasteSummaryFromHistory(history: PlateHistoryItem[]) {
     return "Post a few plates to unlock personalized picks.";
   }
 
-  const traits = dominantTraits(history, 2);
-  if (traits.length >= 2) {
-    return `Based on the ${traits[0]} and ${traits[1]} dishes you've posted, here are new spots to try.`;
-  }
-  if (traits.length === 1) {
-    return `Based on the ${traits[0]} dishes you've shared, here are new spots to try.`;
-  }
-
-  const profile = buildTasteProfile(history);
-  return `Based on the ${STYLE_WORDS[profile.primaryStyle]} plates you've posted, here are new spots to try.`;
+  return "";
 }
 
-function profileThemeLabel(history: PlateHistoryItem[]) {
-  const traits = dominantTraits(history, 1);
-  if (traits.length > 0) return traits[0];
+function themeForPick(history: PlateHistoryItem[], pickIndex: number) {
+  const traits = dominantTraits(history, 3);
+  if (traits.length > 0) {
+    return traits[pickIndex % traits.length];
+  }
+
   const profile = buildTasteProfile(history);
-  return STYLE_WORDS[profile.primaryStyle];
+  const styles = [STYLE_WORDS[profile.primaryStyle], "varied", "mixed"];
+  return styles[pickIndex % styles.length];
+}
+
+function profileThemeLabel(history: PlateHistoryItem[], pickIndex = 0) {
+  return themeForPick(history, pickIndex);
+}
+
+export function getPickStyleKey(dish: string, restaurant: string) {
+  return inferFoodStyle(dish, restaurant);
 }
 
 export interface TasteProfile {
@@ -812,15 +820,15 @@ function sameProteinReason(
 ) {
   const variants: Record<string, string[]> = {
     chicken: [
-      `You often post chicken like ${dishLabel(anchorDish)}; ${dishLabel(dish)} stays in that lane.`,
-      `Chicken plates you've shared point toward ${dishLabel(dish)} as a next try.`,
+      `You often post chicken dishes; this pick stays in that lane.`,
+      `Your chicken posts point toward a similar next order.`,
     ],
     beef: [
-      `You posted hearty beef like ${dishLabel(anchorDish)}; ${dishLabel(dish)} fits that style.`,
-      `Beefy posts you've shared suggest ${dishLabel(dish)} could work well.`,
+      `You post hearty beef plates; this order fits that style.`,
+      `Your beef dishes suggest this as a sensible next try.`,
     ],
     seafood: [
-      `Seafood posts like ${dishLabel(anchorDish)} make ${dishLabel(dish)} a sensible stretch.`,
+      `Your seafood posts make this a sensible stretch.`,
     ],
   };
 
@@ -846,7 +854,7 @@ export function buildDishReason(
   const usedAnchors = options?.usedAnchors;
   const posts = [...history];
   const anchorPost = pickAnchorPost(posts, dish, restaurant, usedAnchors);
-  const theme = profileThemeLabel(history);
+  const theme = profileThemeLabel(history, pickIndex);
 
   if (anchorPost && usedAnchors) {
     usedAnchors.add(anchorKey(anchorPost.dish_name));

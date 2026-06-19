@@ -21,7 +21,8 @@ import { createBrowserClient } from "@/lib/supabase/client";
 export function PostPlateForm() {
   const router = useRouter();
   const { getAccessToken, user, loading: authLoading } = useAuth();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -98,11 +99,16 @@ export function PostPlateForm() {
     };
   }, [authLoading, user]);
 
+  function clearFileInputs() {
+    if (cameraRef.current) cameraRef.current.value = "";
+    if (uploadRef.current) uploadRef.current.value = "";
+  }
+
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setCropSrc(URL.createObjectURL(f));
-    if (fileRef.current) fileRef.current.value = "";
+    clearFileInputs();
   }
 
   function onCropConfirm(cropped: File) {
@@ -221,22 +227,45 @@ export function PostPlateForm() {
       </div>
 
       <div className="mx-auto w-full max-w-sm space-y-4">
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface"
-        >
+        <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface">
           {preview ? (
             <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
           ) : (
             <AppIcon kind="post" size={80} />
           )}
-        </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={loading}
+            className="rounded-2xl border border-border bg-surface py-3 text-sm font-semibold disabled:opacity-50"
+          >
+            Take photo
+          </button>
+          <button
+            type="button"
+            onClick={() => uploadRef.current?.click()}
+            disabled={loading}
+            className="rounded-2xl border border-border bg-surface py-3 text-sm font-semibold disabled:opacity-50"
+          >
+            Upload photo
+          </button>
+        </div>
+
         <input
-          ref={fileRef}
+          ref={cameraRef}
           type="file"
           accept="image/*"
           capture="environment"
+          className="hidden"
+          onChange={onFileChange}
+        />
+        <input
+          ref={uploadRef}
+          type="file"
+          accept="image/*"
           className="hidden"
           onChange={onFileChange}
         />
