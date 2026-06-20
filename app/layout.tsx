@@ -21,10 +21,13 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "Munchly | Is your food a 10?",
   description: "Munchly. Post it. Rate it. Hot or Not for food photos.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=9",
   icons: {
-    icon: [{ url: "/favicon.png?v=8", type: "image/png" }],
-    apple: [{ url: "/favicon.png?v=8", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico?v=9", sizes: "any" },
+      { url: "/favicon.png?v=9", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon.png?v=9", type: "image/png", sizes: "180x180" }],
   },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
 };
