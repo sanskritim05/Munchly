@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AppIcon } from "@/components/AppIcon";
-import { ProfileFollowButton } from "@/components/ProfileFollowButton";
 import { ProfileHeader } from "@/components/ProfileHeader";
+import { ProfileStatsSection } from "@/components/ProfileStatsSection";
 import { ProfilePlatesGrid } from "@/components/ProfilePlatesGrid";
-import { ProfileRecommendations } from "@/components/ProfileRecommendations";
 import { ProfileSettingsButton } from "@/components/ProfileSettingsButton";
 import { ProfileViewTracker } from "@/components/ProfileViewTracker";
 import { ScoreBadge } from "@/components/ScoreBadge";
@@ -61,26 +60,12 @@ export default async function ProfilePage({
         totalPlates={totalPlates}
       />
 
-      <ProfileFollowButton profileUserId={profile.id} />
-
-      <ProfileRecommendations profileUserId={profile.id} plateCount={totalPlates} />
-
-      <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-surface p-3 text-center sm:gap-4 sm:p-4">
-        <div>
-          <p className="text-2xl font-bold">{totalPlates}</p>
-          <p className="text-xs text-gray-400">Plates</p>
-        </div>
-        <div>
-          <div className="flex justify-center">
-            <ScoreBadge score={avgScore} size="sm" />
-          </div>
-          <p className="mt-1 text-xs text-gray-400">Avg Score</p>
-        </div>
-        <div>
-          <p className="text-2xl font-bold">{profile.follower_count}</p>
-          <p className="text-xs text-gray-400">Followers</p>
-        </div>
-      </div>
+      <ProfileStatsSection
+        profileUserId={profile.id}
+        totalPlates={totalPlates}
+        avgScore={avgScore}
+        initialFollowerCount={profile.follower_count ?? 0}
+      />
 
       {best ? (
         <Link

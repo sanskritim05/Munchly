@@ -4,7 +4,7 @@ import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 
 export function FeedSignInPrompt({
   title = "Create an account to rate",
-  description = "Browse posts for free. Sign up to swipe hot or not and join the community.",
+  description = "Explore posts for free. Sign up to swipe hot or not and join the community.",
 }: {
   title?: string;
   description?: string;

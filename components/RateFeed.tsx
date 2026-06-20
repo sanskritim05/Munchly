@@ -18,9 +18,11 @@ import { getStreak, recordRating } from "@/lib/streak";
 import { track } from "@/lib/analytics";
 import { feedLoadingClass } from "@/lib/feed-ui";
 import { FeedSignInPrompt } from "@/components/FeedSignInPrompt";
+import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { isRegisteredUser } from "@/lib/auth-user";
+import type { FeedFilter } from "@/lib/feed-scope";
 
 interface FeedPlate {
   id: string;
@@ -30,6 +32,7 @@ interface FeedPlate {
   restaurant_name: string | null;
   score: number;
   username: string;
+  is_following?: boolean;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -99,12 +102,21 @@ function SwipeCard({
         username={plate.username}
         title={plate.dish_name ?? "Plate"}
         subtitle={plate.restaurant_name}
+        isFollowing={plate.is_following}
       />
     </motion.div>
   );
 }
 
-export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" }) {
+export function RateFeed({
+  filter = "everyone",
+  onFilterChange,
+  onSwitchToExplore,
+}: {
+  filter?: FeedFilter;
+  onFilterChange?: (filter: FeedFilter) => void;
+  onSwitchToExplore?: () => void;
+}) {
   const { user, getAccessToken, loading: authLoading } = useAuth();
   const registered = isRegisteredUser(user);
   const [plates, setPlates] = useState<FeedPlate[]>([]);
@@ -131,7 +143,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     const token = tokenOverride ?? getAccessToken();
     if (!token) return false;
 
-    const res = await fetch(`/api/feed?scope=${scope}`, {
+    const res = await fetch(`/api/feed?filter=${filter}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -143,7 +155,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
     setLoading(false);
     setRefreshing(false);
     return true;
-  }, [getAccessToken, scope, x]);
+  }, [filter, getAccessToken, x]);
 
   useEffect(() => {
     async function init() {
@@ -163,10 +175,11 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
       const s = getStreak();
       setStreak(s.count);
       setRatedToday(s.ratedToday);
+      setLoading(true);
       await loadFeed(token);
     }
     init();
-  }, [authLoading, registered, getAccessToken, loadFeed, scope]);
+  }, [authLoading, registered, getAccessToken, loadFeed, filter]);
 
   const current = plates[index];
   const next = plates[index + 1];
@@ -246,8 +259,8 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   if (!authLoading && !registered) {
     return (
       <FeedSignInPrompt
-        title={scope === "following" ? "sign in to see following" : "sign in to rate plates"}
-        description="Browse posts for free. Create an account to swipe hot or not."
+        title="sign in to rate plates"
+        description="Explore posts for free. Create an account to swipe hot or not."
       />
     );
   }
@@ -263,7 +276,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   if (!current) {
     const caughtUp = plates.length > 0;
 
-    if (scope === "following" && !caughtUp) {
+    if (filter === "following" && !caughtUp) {
       if (followingCount === 0 || !followingHasPosts) {
         return <FollowingFeedEmptyState followingCount={followingCount} />;
       }
@@ -271,25 +284,54 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
 
     return (
       <FeedViewportEmpty
-        title={caughtUp ? "you've seen everything" : "nothing to rate yet"}
+        title={caughtUp ? "You've seen everything" : "No plates to rate yet"}
         description={
           caughtUp
-            ? "Switch to Browse to see all posts and leave comments."
-            : "Plates from other people will show up here. Post yours and invite friends to join."
+            ? filter === "following"
+              ? "Switch to All to rate more plates, or explore posts and leave comments."
+              : "Explore posts and leave comments, or check back later for new plates."
+            : "Explore what others posted, or find people on Top to follow."
         }
       >
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            onClick={refreshFeed}
-            disabled={refreshing}
-            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
-          >
-            {refreshing ? "refreshing..." : "refresh"}
-          </button>
+        <div className="flex w-full flex-col items-center gap-3">
+          {!caughtUp ? (
+            <>
+              <button
+                type="button"
+                onClick={onSwitchToExplore}
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+              >
+                Explore posts
+              </button>
+              <Link
+                href="/leaderboard"
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold"
+              >
+                View Top
+              </Link>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onSwitchToExplore}
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+              >
+                Explore posts
+              </button>
+              <button
+                type="button"
+                onClick={refreshFeed}
+                disabled={refreshing}
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
+              >
+                {refreshing ? "Refreshing..." : "Refresh"}
+              </button>
+            </>
+          )}
           <Link
             href="/post"
-            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+            className="text-sm font-medium text-gray-400 hover:text-hot"
           >
             Post your plate
           </Link>
@@ -299,19 +341,30 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
   }
 
   return (
-    <div className="relative mx-auto h-full w-full touch-none px-feed">
-      {scope === "foryou" ? (
-        <div className="absolute right-3 top-2 z-20 rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:text-sm">
+    <div className="relative mx-auto flex h-full w-full flex-col touch-none">
+      <div className="flex shrink-0 items-center justify-between px-feed pb-1 pt-1">
+        {onFilterChange ? (
+          <FeedFilterToggle
+            filter={filter}
+            onChange={onFilterChange}
+            followingCount={followingCount}
+            hint={filter === "everyone" ? "Friends first" : undefined}
+          />
+        ) : (
+          <span />
+        )}
+        <div className="rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:text-sm">
           <span className="inline-flex items-center gap-1.5">
             <AppIcon kind="flame" size={16} />
-            <span>{ratedToday} rated today</span>
+            <span>{ratedToday} today</span>
             <span className="text-gray-400">·</span>
-            <span>{streak > 0 ? `Day ${streak} streak` : "No streak yet"}</span>
+            <span>{streak > 0 ? `Day ${streak}` : "No streak"}</span>
           </span>
         </div>
-      ) : null}
+      </div>
 
-      <div className="absolute inset-x-0 top-2 bottom-[var(--feed-actions-height)]">
+      <div className="relative min-h-0 flex-1 px-feed">
+        <div className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)]">
         {next ? (
           <SwipeCard
             key={next.id}
@@ -339,9 +392,9 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
             touchAction: "none",
           }}
         />
-      </div>
+        </div>
 
-      <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
+        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
         <motion.button
           type="button"
           whileTap={{ scale: 0.9 }}
@@ -362,6 +415,7 @@ export function RateFeed({ scope = "foryou" }: { scope?: "foryou" | "following" 
         >
           <AppIcon kind="flame" size={ICON_SIZE} />
         </motion.button>
+        </div>
       </div>
     </div>
   );

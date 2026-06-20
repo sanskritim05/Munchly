@@ -228,7 +228,7 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
           id="settings-bio"
           value={bio}
           onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX_LENGTH))}
-          placeholder="What kind of food do you post?"
+          placeholder="enter bio"
           maxLength={BIO_MAX_LENGTH}
           rows={2}
           className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3"

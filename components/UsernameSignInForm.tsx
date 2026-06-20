@@ -4,11 +4,13 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLogo } from "@/components/AppLogo";
+import { LandingCarouselBackdrop } from "@/components/LandingCarouselBackdrop";
 import { useAuth } from "@/components/AuthProvider";
-import { getPostAuthPath } from "@/lib/auth-redirect";
+import { getPostAuthPath, resolveAuthNext } from "@/lib/auth-redirect";
 import { createBrowserClient } from "@/lib/supabase/client";
+import type { LandingCarouselPlate } from "@/lib/landing-carousel";
 
-export function UsernameSignInForm() {
+export function UsernameSignInForm({ plates }: { plates: LandingCarouselPlate[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signInUsername } = useAuth();
@@ -17,7 +19,7 @@ export function UsernameSignInForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const next = searchParams.get("next") || "/swipe";
+  const next = resolveAuthNext(searchParams.get("next"));
   const nextQuery = next !== "/swipe" ? `?next=${encodeURIComponent(next)}` : "";
 
   async function onSubmit(e: FormEvent) {
@@ -48,18 +50,14 @@ export function UsernameSignInForm() {
   }
 
   return (
-    <div className="min-h-page">
-      <div className="relative flex min-h-page flex-col items-center justify-center overflow-hidden px-page pb-8 pt-8 text-center sm:pt-12">
-        <div className="absolute inset-0 opacity-30">
-          <div className="animate-pulse bg-gradient-to-br from-hot/40 via-purple/20 to-black" />
-        </div>
+    <LandingCarouselBackdrop
+      initialPlates={plates}
+      contentClassName="w-full max-w-md pb-8 pt-8 text-left sm:pt-12"
+    >
+      <AppLogo size={140} priority className="mx-auto" />
+      <h1 className="mt-6 text-center text-4xl font-bold tracking-tight">Welcome back</h1>
 
-        <div className="relative z-10 w-full max-w-md text-left">
-          <AppLogo size={140} priority className="mx-auto" />
-          <h1 className="mt-6 text-center text-4xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-3 text-center text-gray-400">Sign in with your username and password.</p>
-
-          <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-2xl border border-border bg-surface p-6">
+      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-2xl border border-border bg-surface p-6">
             <div>
               <label htmlFor="signin-username" className="mb-1 block text-sm text-gray-400">
                 Username
@@ -68,7 +66,7 @@ export function UsernameSignInForm() {
                 id="signin-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="yourname"
+                placeholder="your username"
                 required
                 autoComplete="username"
                 maxLength={20}
@@ -85,7 +83,7 @@ export function UsernameSignInForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
+                placeholder="your password"
                 required
                 autoComplete="current-password"
                 minLength={6}
@@ -110,8 +108,6 @@ export function UsernameSignInForm() {
               Get started
             </Link>
           </p>
-        </div>
-      </div>
-    </div>
+    </LandingCarouselBackdrop>
   );
 }

@@ -7,10 +7,6 @@ import {
   buildDishReason,
   buildTasteSummaryFromHistory,
   getPickStyleKey,
-  RECOMMENDATION_REASON_MAX_WORDS,
-  RECOMMENDATION_REASON_MIN_WORDS,
-  resolveDishReason,
-  sanitizeReason,
   scorePickForHistory,
   shouldRecommendPick,
 } from "@/lib/recommendation-reasons";
@@ -136,7 +132,6 @@ function sanitizeRecommendations(
   for (const rec of ranked) {
     const restaurant = cleanText(rec.restaurant);
     const dish = resolveDishName(restaurant, rec.dish);
-    const reason = cleanText(rec.reason);
 
     if (!restaurant || !dish) continue;
 
@@ -156,7 +151,7 @@ function sanitizeRecommendations(
     cleaned.push({
       restaurant,
       dish,
-      reason: resolveDishReason(reason, restaurant, dish, history, locationLabel, {
+      reason: buildDishReason(dish, restaurant, history, locationLabel, {
         pickIndex,
         usedReasons,
         usedAnchors,
@@ -339,7 +334,7 @@ Return ONLY valid JSON, no markdown:
 {
   "taste_summary": string (optional, leave empty),
   "recommendations": [
-    { "restaurant": string, "dish": string, "reason": string (STRICT max ${RECOMMENDATION_REASON_MAX_WORDS} words) }
+    { "restaurant": string, "dish": string }
   ]
 }
 
@@ -347,12 +342,7 @@ Rules:
 - Give exactly ${RECOMMENDATION_COUNT} recommendations with varied cuisines and styles across the three picks
 - Do not make all three picks revolve around one trait like creamy, pasta, or chicken unless the user's history is extremely narrow
 - Look at the user's full posting history holistically, not just their latest dish or one repeated trait
-- Each reason must be a complete sentence of ${RECOMMENDATION_REASON_MAX_WORDS} words or fewer. Never exceed ${RECOMMENDATION_REASON_MAX_WORDS} words.
-- Do not repeat the recommended dish name in the reason; the UI already shows the dish separately
 - Leave taste_summary as an empty string
-- The user has POSTED food photos with what they ordered. They have NOT personally rated anything.
-- Plate scores in history are community ratings on their posts, NOT the user's own ratings. Never mention scores or ratings.
-- Use language like "posted", "ordered", "shared" — never "rated", "scored", "loved highly", or "you seem to like"
 - Each recommendation MUST include both a restaurant and a specific menu item to order there
 - Recommend NEW restaurants the user has NOT visited before
 - Recommend NEW dishes the user has NOT posted before
@@ -361,21 +351,8 @@ Rules:
 - Never use generic dish names like "signature entree", "house special", or "chef's pick"
 - Use real US restaurant chains or widely known restaurant names
 - All ${RECOMMENDATION_COUNT} picks must be different restaurants and different dishes
-- Plain English, no emojis, no em dashes
-- Each reason must be a complete sentence of ${RECOMMENDATION_REASON_MAX_WORDS} words or fewer. Never exceed ${RECOMMENDATION_REASON_MAX_WORDS} words.
-- Count words carefully before returning. If a reason is over ${RECOMMENDATION_REASON_MAX_WORDS} words, rewrite it shorter.
-- All ${RECOMMENDATION_COUNT} reasons must sound different from each other
-- Only link a pick to a posted dish when the connection is concrete: same protein, spice, texture, or cuisine
-- Never claim a posted dish has a trait it does not obviously have
 - Match the course and style of what they post. If they post desserts like donuts, pick bakeries, ice cream, or sweet menu items, not savory bowls or chicken entrees
-- Base each reason on the user's overall posting patterns, not just their single latest dish
-- Use different posted dishes across the three reasons when they genuinely connect to each pick
-- Do not recommend a savory bowl or entree for a dessert post unless the reason clearly says it is a deliberate savory stretch
-- Never imply a donut or dessert post naturally leads to a chicken bowl, burger, or similar savory dish
-- Bad: "You rated yogurt kabab highly, so this burger should work."
-- Bad: "You posted donuts; this harissa chicken bowl is a new spot to try."
-- Good: "You posted yogurt kabab; this citrus-marinated chicken keeps that bright flavor going."
-- Good: "You post donuts; try a classic cinnamon roll at Cinnabon for another sweet fix."`,
+- Do not recommend a savory bowl or entree for a dessert post unless it is a deliberate savory stretch`,
         },
         {
           role: "user",
@@ -409,7 +386,7 @@ Suggest ${RECOMMENDATION_COUNT} new restaurants and one specific dish to try at 
     const raw = (parsed.recommendations ?? []).map((r) => ({
       restaurant: cleanText(r.restaurant || ""),
       dish: cleanText(r.dish || ""),
-      reason: sanitizeReason(cleanText(r.reason || "")),
+      reason: "",
     }));
 
     const recommendations = fillMissingRecommendations(

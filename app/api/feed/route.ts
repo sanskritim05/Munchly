@@ -20,6 +20,52 @@ async function getFollowingIds(supabase: ReturnType<typeof createAdminClient>, u
   return (data ?? []).map((row) => row.following_id);
 }
 
+type RawPlate = {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  dish_name: string | null;
+  restaurant_name: string | null;
+  score: number;
+  hot_count: number;
+  not_count: number;
+  created_at: string;
+  user_id: string;
+  profiles:
+    | { username: string | null; avatar_url: string | null }
+    | { username: string | null; avatar_url: string | null }[]
+    | null;
+};
+
+function mapPlate(p: RawPlate, followingSet: Set<string>) {
+  const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+  return {
+    id: p.id,
+    image_url: p.image_url,
+    caption: p.caption,
+    dish_name: p.dish_name,
+    restaurant_name: p.restaurant_name,
+    score: Number(p.score),
+    hot_count: p.hot_count,
+    not_count: p.not_count,
+    username: profile?.username ?? "anon",
+    avatar_url: profile?.avatar_url,
+    is_following: followingSet.has(p.user_id),
+  };
+}
+
+function orderEveryoneFeed(plates: RawPlate[], followingSet: Set<string>, ratedSet: Set<string>) {
+  const unrated = plates.filter((p) => !ratedSet.has(p.id));
+  const fromFollowing = unrated
+    .filter((p) => followingSet.has(p.user_id))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const fromEveryone = shuffle(unrated.filter((p) => !followingSet.has(p.user_id)));
+
+  return [...fromFollowing, ...fromEveryone]
+    .slice(0, 30)
+    .map((p) => mapPlate(p, followingSet));
+}
+
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
   if (!isRegisteredAuthUser(user)) {
@@ -27,7 +73,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const scope = searchParams.get("scope") === "following" ? "following" : "foryou";
+  const filter = searchParams.get("filter") === "following" ? "following" : "everyone";
 
   const supabase = createAdminClient();
 
@@ -37,10 +83,10 @@ export async function GET(request: Request) {
     .eq("rater_id", user.id);
 
   const ratedSet = new Set((rated ?? []).map((r) => r.plate_id));
+  const followingIds = await getFollowingIds(supabase, user.id);
+  const followingSet = new Set(followingIds);
 
-  let followingIds: string[] | null = null;
-  if (scope === "following") {
-    followingIds = await getFollowingIds(supabase, user.id);
+  if (filter === "following") {
     if (followingIds.length === 0) {
       return NextResponse.json({
         plates: [],
@@ -57,10 +103,10 @@ export async function GET(request: Request) {
 
     const followingHasPosts = (postCount ?? 0) > 0;
 
-    let query = supabase
+    const { data, error } = await supabase
       .from("plates")
       .select(
-        `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count,
+        `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
          profiles!plates_user_id_fkey (username, avatar_url)`
       )
       .eq("is_active", true)
@@ -69,8 +115,6 @@ export async function GET(request: Request) {
       .order("created_at", { ascending: false })
       .limit(100);
 
-    const { data, error } = await query;
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -78,21 +122,7 @@ export async function GET(request: Request) {
     const plates = (data ?? [])
       .filter((p) => !ratedSet.has(p.id))
       .slice(0, 30)
-      .map((p) => {
-        const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
-        return {
-          id: p.id,
-          image_url: p.image_url,
-          caption: p.caption,
-          dish_name: p.dish_name,
-          restaurant_name: p.restaurant_name,
-          score: Number(p.score),
-          hot_count: p.hot_count,
-          not_count: p.not_count,
-          username: profile?.username ?? "anon",
-          avatar_url: profile?.avatar_url,
-        };
-      });
+      .map((p) => mapPlate(p as RawPlate, followingSet));
 
     return NextResponse.json({
       plates,
@@ -104,7 +134,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from("plates")
     .select(
-      `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count,
+      `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
        profiles!plates_user_id_fkey (username, avatar_url)`
     )
     .eq("is_active", true)
@@ -115,23 +145,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const plates = shuffle((data ?? []).filter((p) => !ratedSet.has(p.id)))
-    .slice(0, 30)
-    .map((p) => {
-      const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
-      return {
-        id: p.id,
-        image_url: p.image_url,
-        caption: p.caption,
-        dish_name: p.dish_name,
-        restaurant_name: p.restaurant_name,
-        score: Number(p.score),
-        hot_count: p.hot_count,
-        not_count: p.not_count,
-        username: profile?.username ?? "anon",
-        avatar_url: profile?.avatar_url,
-      };
-    });
+  const plates = orderEveryoneFeed((data ?? []) as RawPlate[], followingSet, ratedSet);
 
-  return NextResponse.json({ plates });
+  return NextResponse.json({
+    plates,
+    following_count: followingIds.length,
+    following_has_posts: followingIds.length > 0,
+  });
 }

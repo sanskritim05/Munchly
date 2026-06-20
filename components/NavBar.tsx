@@ -9,13 +9,24 @@ import { createBrowserClient } from "@/lib/supabase/client";
 
 const NAV_ICON_SIZE = 24;
 
-const TABS: { href: string; label: string; icon: AppIconKind; match: (path: string) => boolean }[] = [
-  { href: "/swipe", label: "Feed", icon: "flame", match: (p) => p.startsWith("/swipe") },
+const TABS: { href: string; label: string; icon: AppIconKind | "picks"; match: (path: string) => boolean }[] = [
+  { href: "/swipe", label: "Rate", icon: "flame", match: (p) => p.startsWith("/swipe") },
   { href: "/post", label: "Post", icon: "post", match: (p) => p.startsWith("/post") },
   { href: "/leaderboard", label: "Top", icon: "trophy", match: (p) => p.startsWith("/leaderboard") },
+  { href: "/picks", label: "Picks", icon: "picks", match: (p) => p.startsWith("/picks") },
 ];
 
-function NavIcon({ kind }: { kind: AppIconKind }) {
+function NavIcon({ kind }: { kind: AppIconKind | "picks" }) {
+  if (kind === "picks") {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center text-hot" aria-hidden>
+        <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+          <path d="M12 2l1.2 4.2L17 7l-3.8 1.8L12 13l-1.2-4.2L7 7l3.8-1.8L12 2zm6 8.5 1 3.5 3.5 1-3.5 1-1 3.5-1-3.5-3.5-1 3.5-1 1-3.5 3.5-1-3.5-1zm-12 2 0.8 2.8 2.8 0.8-2.8 0.8L6 19l-0.8-2.8-2.8-0.8 2.8-0.8L6 12z" />
+        </svg>
+      </span>
+    );
+  }
+
   return (
     <span className="flex h-6 w-6 shrink-0 items-center justify-center">
       <AppIcon kind={kind} size={NAV_ICON_SIZE} className="h-6 w-6" />
@@ -31,7 +42,7 @@ function NavTab({
 }: {
   href: string;
   label: string;
-  icon: AppIconKind;
+  icon: AppIconKind | "picks";
   active: boolean;
 }) {
   const router = useRouter();
@@ -40,7 +51,7 @@ function NavTab({
     <button
       type="button"
       onClick={() => router.push(href)}
-      className={`flex min-w-[3.5rem] flex-col items-center gap-1 py-1 text-xs transition-colors ${
+      className={`flex min-w-[2.85rem] flex-col items-center gap-1 py-1 text-[11px] transition-colors sm:min-w-[3.5rem] sm:text-xs ${
         active ? "text-hot" : "text-gray-500"
       }`}
     >
@@ -110,16 +121,17 @@ export function NavBar() {
     };
   }, [user?.id]);
 
+  const picksHref = user ? "/picks" : "/get-started?next=/picks";
   const youHref = user ? "/profile/me" : "/get-started?next=/profile/me";
   const youActive = pathname.startsWith("/profile");
 
   return (
     <nav className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-black/95 backdrop-blur-md">
-      <div className="app-container flex w-full items-center justify-around px-page py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="app-container flex w-full items-center justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-page">
         {TABS.map((tab) => (
           <NavTab
             key={tab.href}
-            href={tab.href}
+            href={tab.href === "/picks" ? picksHref : tab.href}
             label={tab.label}
             icon={tab.icon}
             active={tab.match(pathname)}
@@ -128,7 +140,7 @@ export function NavBar() {
         <button
           type="button"
           onClick={() => router.push(youHref)}
-          className={`flex min-w-[3.5rem] flex-col items-center gap-1 py-1 text-xs transition-colors ${
+          className={`flex min-w-[2.85rem] flex-col items-center gap-1 py-1 text-[11px] transition-colors sm:min-w-[3.5rem] sm:text-xs ${
             youActive ? "text-hot" : "text-gray-500"
           }`}
         >

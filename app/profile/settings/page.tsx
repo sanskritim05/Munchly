@@ -24,7 +24,7 @@ export default function ProfileSettingsPage() {
     async function load() {
       if (authLoading) return;
       if (!user) {
-        router.replace("/get-started?next=/profile/settings");
+        router.replace("/signin?next=/swipe");
         return;
       }
 
@@ -43,7 +43,7 @@ export default function ProfileSettingsPage() {
       }
 
       if (!data.onboarding_complete) {
-        router.replace("/get-started?next=/profile/settings");
+        router.replace("/get-started?next=/swipe");
         return;
       }
 

@@ -15,11 +15,11 @@ export default async function LeaderboardPage() {
   return (
     <div className="app-container px-page pb-page pt-4 sm:pt-6">
       <AnalyticsOnce eventName="leaderboard_viewed" />
-      <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold sm:text-3xl">
-        This Week&apos;s Hottest Plates <AppIcon kind="trophy" size={32} />
+      <h1 className="text-2xl font-bold sm:text-3xl">
+        This Week&apos;s Hottest Plates
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Top plates from the last 7 days, ranked by score.
+        Top plates from the last 7 days, ranked by score and number of ratings.
       </p>
 
       <ul className="mt-6 space-y-3">
@@ -50,9 +50,23 @@ export default async function LeaderboardPage() {
                     />
                   ) : null}
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold">{entry.dishName ?? "Plate"}</p>
-                  <p className="text-sm text-gray-400">@{entry.username}</p>
+                <div className="min-w-0 flex-1">
+                  {entry.restaurantName ? (
+                    <p className="truncate font-bold leading-snug">{entry.restaurantName}</p>
+                  ) : null}
+                  {entry.dishName ? (
+                    <p
+                      className={`truncate text-sm leading-snug text-gray-300 ${
+                        entry.restaurantName ? "" : "font-bold text-white"
+                      }`}
+                    >
+                      {entry.dishName}
+                    </p>
+                  ) : null}
+                  {!entry.restaurantName && !entry.dishName ? (
+                    <p className="font-bold">Plate</p>
+                  ) : null}
+                  <p className="mt-1 truncate text-sm text-gray-400">@{entry.username}</p>
                 </div>
                 <ScoreBadge score={entry.score} size="sm" />
               </Link>

@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
+import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
+import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { PlateView } from "@/components/PlateView";
 import { isRegisteredUser } from "@/lib/auth-user";
+import type { FeedFilter } from "@/lib/feed-scope";
 import { feedLoadingClass, feedMetaClass } from "@/lib/feed-ui";
 
 interface BrowsePlate {
@@ -21,11 +24,19 @@ interface BrowsePlate {
   not_count: number;
   comment_count: number;
   username: string;
+  is_following?: boolean;
 }
 
-export function BrowseFeed() {
+export function BrowseFeed({
+  filter = "everyone",
+  onFilterChange,
+}: {
+  filter?: FeedFilter;
+  onFilterChange?: (filter: FeedFilter) => void;
+}) {
   const { user, getAccessToken, loading: authLoading } = useAuth();
   const [plates, setPlates] = useState<BrowsePlate[]>([]);
+  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -38,25 +49,27 @@ export function BrowseFeed() {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch("/api/feed/browse", { headers });
+    const res = await fetch(`/api/feed/browse?filter=${filter}`, { headers });
     const data = await res.json();
     setPlates(data.plates ?? []);
+    setFollowingCount(data.following_count ?? 0);
     setLoading(false);
     setRefreshing(false);
     return res.ok;
-  }, [getAccessToken]);
+  }, [filter, getAccessToken]);
 
   useEffect(() => {
     if (authLoading) return;
+    setLoading(true);
     void loadBrowse();
-  }, [authLoading, loadBrowse]);
+  }, [authLoading, loadBrowse, filter]);
 
   if (selectedId) {
     return (
       <PlateView
         plateId={selectedId}
         onBack={() => setSelectedId(null)}
-        backLabel="Back to browse"
+        backLabel="Back to explore"
       />
     );
   }
@@ -70,10 +83,14 @@ export function BrowseFeed() {
   }
 
   if (plates.length === 0) {
+    if (filter === "following" && registered) {
+      return <FollowingFeedEmptyState followingCount={followingCount} />;
+    }
+
     return (
       <FeedViewportEmpty
         title="no posts yet"
-        description="When others post plates, you can browse them here."
+        description="When others post plates, you can explore them here."
       >
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
@@ -111,7 +128,7 @@ export function BrowseFeed() {
     <div className="app-container w-full px-page pb-6 pt-2">
       {!registered ? (
         <p className="mb-4 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400">
-          Browsing only.{" "}
+          Exploring only.{" "}
           <Link href="/get-started?next=/swipe" className="font-semibold text-hot hover:underline">
             Create an account
           </Link>{" "}
@@ -119,8 +136,20 @@ export function BrowseFeed() {
         </p>
       ) : null}
 
-      <div className="mb-4 flex items-center justify-between">
-        <p className={feedMetaClass}>{plates.length} posts</p>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          {registered && onFilterChange ? (
+            <FeedFilterToggle
+              filter={filter}
+              onChange={onFilterChange}
+              followingCount={followingCount}
+            />
+          ) : null}
+          <p className={`${feedMetaClass} ${registered && onFilterChange ? "mt-2" : ""}`}>
+            {plates.length} post{plates.length === 1 ? "" : "s"}
+            {filter === "following" ? " from people you follow" : ""}
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -128,7 +157,7 @@ export function BrowseFeed() {
             void loadBrowse();
           }}
           disabled={refreshing}
-          className={`${feedMetaClass} font-medium text-hot disabled:opacity-50`}
+          className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
         >
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
@@ -160,6 +189,7 @@ export function BrowseFeed() {
                     username={plate.username}
                     title={plate.dish_name ?? "Plate"}
                     subtitle={plate.restaurant_name}
+                    isFollowing={plate.is_following}
                     className="bottom-0 p-5"
                   />
                 </div>

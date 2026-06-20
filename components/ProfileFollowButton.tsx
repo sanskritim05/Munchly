@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { isRegisteredUser } from "@/lib/auth-user";
 
-export function ProfileFollowButton({ profileUserId }: { profileUserId: string }) {
+export function ProfileFollowButton({
+  profileUserId,
+  onFollowerCountChange,
+}: {
+  profileUserId: string;
+  onFollowerCountChange?: (count: number) => void;
+}) {
   const router = useRouter();
   const { user, getAccessToken } = useAuth();
   const [following, setFollowing] = useState(false);
@@ -34,13 +40,16 @@ export function ProfileFollowButton({ profileUserId }: { profileUserId: string }
       if (res.ok) {
         const data = await res.json();
         setFollowing(Boolean(data.following));
+        if (typeof data.follower_count === "number") {
+          onFollowerCountChange?.(data.follower_count);
+        }
       }
 
       setLoading(false);
     }
 
     loadStatus();
-  }, [user, isOwnProfile, profileUserId, getAccessToken]);
+  }, [user, isOwnProfile, profileUserId, getAccessToken, onFollowerCountChange]);
 
   async function toggleFollow() {
     const token = getAccessToken();
@@ -65,6 +74,9 @@ export function ProfileFollowButton({ profileUserId }: { profileUserId: string }
       if (res.ok) {
         const data = await res.json();
         setFollowing(Boolean(data.following));
+        if (typeof data.follower_count === "number") {
+          onFollowerCountChange?.(data.follower_count);
+        }
         router.refresh();
       }
     } finally {

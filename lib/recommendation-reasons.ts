@@ -1,68 +1,42 @@
 import type { PlateHistoryItem } from "@/lib/recommendations";
 
-export const RECOMMENDATION_REASON_MAX_WORDS = 15;
+export const RECOMMENDATION_REASON_MAX_WORDS = 18;
 export const RECOMMENDATION_REASON_MIN_WORDS = 8;
 
 const GENERIC_REASON_PATTERNS = [
   /^a well-known pick/i,
-  /^a new pick based on your taste/i,
   /^popular near/i,
-  /fits your taste profile/i,
-  /different from what you'?ve posted/i,
-  /should hit the same/i,
-  /flavor notes/i,
-  /feel familiar/i,
-  /smart next order/i,
-  /crave most/i,
-  /matches the flavors you/i,
-  /matches your palate nicely/i,
   /you rated/i,
   /you rate /i,
   /because you rated/i,
   /high score/i,
   /score.*highly/i,
   /you seem to like/i,
-  /you loved/i,
-  /heat seekers like you/i,
-  /fresh pick/i,
-  /is a fresh pick/i,
-  /^a well-known pick for/i,
-  /^popular near you/i,
-  /is a new spot to try/i,
-  /is a different order/i,
-  /is worth a try/i,
-  /fits what you'?ve been posting/i,
-  /switches up your usual comfort/i,
-  /offers a different comfort-food angle/i,
-  /adds a different treat/i,
-  /brings another indulgent option/i,
-  /tries sweeter food/i,
-  /tries hearty food/i,
-  /tries Asian-leaning food/i,
-  /tries lighter food/i,
-  /tries breakfast food/i,
-  /contrasts nicely with your/i,
-  /pairs well with your/i,
+  /fits your taste profile/i,
+  /^they\b/i,
+  /\bthey(?:'ve|'re|'d|'ll)?\b/i,
+  /\btheir\b/i,
+  /\b(items|treats|dishes|food) like\b/i,
 ];
 
 const TRAIT_PATTERNS: { trait: string; pattern: RegExp }[] = [
   { trait: "salad", pattern: /\b(salad|papaya salad|greens|slaw|cucumber salad)\b/i },
-  { trait: "asian", pattern: /\b(thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodles)\b/i },
-  { trait: "dessert", pattern: /\b(donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana pudding|pastry|pie|frosting|glazed|sundae|ice cream)\b/i },
+  { trait: "asian", pattern: /\b(thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodle|orange chicken|kung pao|fried rice|lo mein|chang)\b/i },
+  { trait: "dessert", pattern: /\b(donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana pudding|pastry|pie|frosting|glazed|sundae|ice cream|cinnamon roll)\b/i },
   { trait: "kabob", pattern: /\b(kabob|kabab|kebab|skewer|shawarma|gyro|tikka|tandoori)\b/i },
   { trait: "spicy", pattern: /\b(spicy|hot|jalape|buffalo|peri|cajun|sriracha|habanero|chipotle|chili)\b/i },
   { trait: "smoky", pattern: /\b(smoky|smoke|bbq|barbecue|grilled|charred|bourbon|ribeye|steak)\b/i },
   { trait: "creamy", pattern: /\b(creamy|alfredo|cheese|queso|mac and cheese|butter|custard|carbonara|pesto|vodka sauce|gnocchi|risotto)\b/i },
   { trait: "tangy", pattern: /\b(tangy|yogurt|lemon|citrus|vinegar|tomato|salsa|pickle|mojo)\b/i },
   { trait: "crispy", pattern: /\b(crispy|crunchy|fried|crisp|tenders|nuggets|wings|orange chicken)\b/i },
-  { trait: "sweet", pattern: /\b(sweet|honey|caramel|maple|glazed|brown sugar|teriyaki|orange)\b/i },
+  { trait: "sweet", pattern: /\b(sweet|honey|caramel|maple|glazed|brown sugar|teriyaki)\b/i },
   { trait: "bowl", pattern: /\b(bowl|burrito bowl|harvest|greens|grain|tropichop)\b/i },
   { trait: "pasta", pattern: /\b(pasta|spaghetti|lasagna|noodle|ramen|fettuccine|gnocchi|rigatoni|penne|bolognese|marinara|arrabbiata|alfredo)\b/i },
   { trait: "pizza", pattern: /\b(pizza|pepperoni|calzone)\b/i },
   { trait: "seafood", pattern: /\b(fish|shrimp|salmon|tuna|crab|lobster|sushi|poke)\b/i },
   { trait: "chicken", pattern: /\b(chicken|poultry|wings)\b/i },
   { trait: "beef", pattern: /\b(beef|burger|steak|brisket|roast beef|ribeye|sirloin|cheeseburger)\b/i },
-  { trait: "breakfast", pattern: /\b(pancake|waffle|breakfast|eggs|biscuit|omelet)\b/i },
+  { trait: "breakfast", pattern: /\b(pancake|waffle|breakfast|eggs?|eggslut|biscuit|omelet|brunch)\b/i },
 ];
 
 const TRAIT_PRIORITY = [
@@ -317,7 +291,7 @@ export function finalizeReason(
   const cleaned = text.replace(/[—–]/g, "-").trim();
   if (!cleaned) return null;
 
-  if (wordCount(cleaned) <= max && isReasonComplete(cleaned)) {
+  if (wordCount(cleaned) <= max && wordCount(cleaned) >= RECOMMENDATION_REASON_MIN_WORDS && isReasonComplete(cleaned)) {
     return appendPeriod(cleaned);
   }
 
@@ -326,11 +300,15 @@ export function finalizeReason(
     const firstClause = cleaned.slice(0, semicolon).trim();
     if (
       wordCount(firstClause) <= max &&
-      wordCount(firstClause) >= 4 &&
+      wordCount(firstClause) >= RECOMMENDATION_REASON_MIN_WORDS &&
       isReasonComplete(firstClause)
     ) {
       return appendPeriod(firstClause);
     }
+  }
+
+  if (wordCount(cleaned) <= max && isReasonComplete(cleaned)) {
+    return appendPeriod(cleaned);
   }
 
   return null;
@@ -341,13 +319,34 @@ export function fitWordCount(text: string, max = RECOMMENDATION_REASON_MAX_WORDS
 }
 
 export function sanitizeReason(reason: string, max = RECOMMENDATION_REASON_MAX_WORDS) {
-  return finalizeReason(reason, max) ?? "";
+  return finalizeReason(normalizeReasonVoice(reason), max) ?? "";
 }
 
 export function isGenericReason(reason: string) {
   const trimmed = reason.trim();
   if (!trimmed) return true;
+  if (isWeakReason(trimmed)) return true;
   return GENERIC_REASON_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+export function isWeakReason(reason: string) {
+  const trimmed = reason.trim();
+  if (!trimmed) return true;
+  if (/\bthey(?:'ve|'re|'d|'ll)?\b/i.test(trimmed)) return true;
+  if (/\btheir\b/i.test(trimmed)) return true;
+  if (/\b(items|treats|dishes|food) like\b/i.test(trimmed)) return true;
+  return false;
+}
+
+export function normalizeReasonVoice(reason: string) {
+  return reason
+    .replace(/\b[Tt]hey've\b/g, "you've")
+    .replace(/\b[Tt]hey're\b/g, "you're")
+    .replace(/\b[Tt]hey'd\b/g, "you'd")
+    .replace(/\b[Tt]hey'll\b/g, "you'll")
+    .replace(/\b[Tt]hey\b/g, "you")
+    .replace(/\b[Tt]heir\b/g, "your")
+    .replace(/\b[Tt]hem\b/g, "you");
 }
 
 const LABEL_STOP_WORDS = new Set(["with", "and", "the", "a", "an", "or", "of", "&", "in", "on"]);
@@ -428,16 +427,17 @@ const STYLE_WORDS: Record<FoodStyle, string> = {
 
 function inferFoodStyle(...parts: (string | null | undefined)[]) {
   const text = parts.filter(Boolean).join(" ").toLowerCase();
+  if (/eggslut|breakfast sandwich|egg sandwich|bacon egg/.test(text)) return "breakfast" as const;
   if (/salad|papaya salad|greens|slaw|cucumber/.test(text)) return "fresh" as const;
-  if (/pancake|waffle|breakfast|eggs|biscuit|brunch|oatmeal/.test(text)) return "breakfast" as const;
-  if (/donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana|pastry|pie|frosting|sundae|ice cream/.test(text)) {
+  if (/pancake|waffle|breakfast|eggs?|biscuit|brunch|oatmeal/.test(text)) return "breakfast" as const;
+  if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|orange chicken|kung pao|fried rice|lo mein|chang/.test(text)) {
+    return "asian" as const;
+  }
+  if (/donut|donuts|doughnut|cronut|cupcake|brownie|churro|muffin|pudding|dessert|cake|cookie|banana|pastry|pie|frosting|sundae|ice cream|cinnamon roll|cinnabon/.test(text)) {
     return "sweet" as const;
   }
   if (/pasta|spaghetti|fettuccine|gnocchi|rigatoni|penne|vodka|pesto|carbonara|bolognese|marinara|arrabbiata|alfredo|lasagna/.test(text)) {
     return "comfort" as const;
-  }
-  if (/thai|pad thai|papaya|pho|ramen|bao|dumpling|wok|sushi|teriyaki|xiao long|dan dan|noodle/.test(text)) {
-    return "asian" as const;
   }
   return "comfort" as const;
 }
@@ -450,22 +450,22 @@ const STYLE_REASONS: Record<FoodStyle, ReasonBuilder[]> = {
       `You share lighter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} should feel similarly fresh.`,
   ],
   breakfast: [
-    (anchor, dish) =>
-      `You post breakfast plates like ${dishLabel(anchor)}; ${dishLabel(dish)} fits that morning comfort.`,
-    (anchor, dish) =>
-      `Morning food like ${dishLabel(anchor)} suggests ${dishLabel(dish)} could hit a similar note.`,
+    (anchor, dish, rest) =>
+      `You post breakfast like ${dishLabel(anchor)}; ${dishLabel(dish)} at ${restaurantLabel(rest)} is your kind of morning bite.`,
+    (anchor, dish, rest) =>
+      `Your ${dishLabel(anchor)} breakfast post makes ${dishLabel(dish)} at ${restaurantLabel(rest)} an easy yes.`,
   ],
   sweet: [
-    (anchor, dish) =>
-      `Your ${dishLabel(anchor)} post leaned sweet; ${dishLabel(dish)} brings another indulgent option.`,
-    (anchor, dish) =>
-      `You share sweeter plates like ${dishLabel(anchor)}; ${dishLabel(dish)} adds a different treat.`,
+    (anchor, dish, rest) =>
+      `You share sweets like ${dishLabel(anchor)}; ${dishLabel(dish)} at ${restaurantLabel(rest)} hits the same sugar craving.`,
+    (anchor, dish, rest) =>
+      `Your ${dishLabel(anchor)} post leaned sweet; ${dishLabel(dish)} at ${restaurantLabel(rest)} is another indulgent win.`,
   ],
   asian: [
-    (anchor, dish) =>
-      `Your ${dishLabel(anchor)} post had bold Asian flavors; ${dishLabel(dish)} is a natural next stretch.`,
-    (anchor, dish) =>
-      `You post Asian-leaning dishes like ${dishLabel(anchor)}; ${dishLabel(dish)} should feel familiar.`,
+    (anchor, dish, rest) =>
+      `You order Asian plates like ${dishLabel(anchor)}; ${dishLabel(dish)} at ${restaurantLabel(rest)} keeps those bold flavors going.`,
+    (anchor, dish, rest) =>
+      `Your ${dishLabel(anchor)} post had big flavor; ${dishLabel(dish)} at ${restaurantLabel(rest)} should feel familiar.`,
   ],
   comfort: [
     (anchor, dish, rest) =>
@@ -657,7 +657,10 @@ export function shouldRecommendPick(
   const dishDessert = isDessertLike(dish, restaurant);
 
   if (profile.isPrimarilySavory && dishDessert) {
-    return false;
+    const postedDessert = profile.recentPosts.some((post) =>
+      isDessertLike(post.dish_name, post.restaurant_name)
+    );
+    if (!postedDessert) return false;
   }
 
   return true;
@@ -782,7 +785,12 @@ function chooseUniqueReason(
     if (!builder) continue;
 
     const reason = finalizeReason(builder(anchorDish, dish, restaurant));
-    if (!reason || isTooSimilar(reason, usedReasons) || isGenericReason(reason)) {
+    if (
+      !reason ||
+      wordCount(reason) < RECOMMENDATION_REASON_MIN_WORDS ||
+      isTooSimilar(reason, usedReasons) ||
+      isGenericReason(reason)
+    ) {
       continue;
     }
     usedReasons.add(reasonSignature(reason));
@@ -888,6 +896,19 @@ export function buildDishReason(
       `${dishLabel(dish)} at ${restaurantLabel(restaurant)} matches the kind of food you've been sharing.`
     );
   } else if (connected) {
+    if (anchorStyle === dishStyle) {
+      const styleBuilders = STYLE_REASONS[anchorStyle] ?? STYLE_REASONS.comfort;
+      const styleReason = chooseUniqueReason(
+        styleBuilders,
+        anchorDish,
+        dish,
+        restaurant,
+        pickIndex,
+        usedReasons
+      );
+      if (styleReason) return styleReason;
+    }
+
     if (sharedTrait) {
       const shared = reasonForTrait(
         sharedTrait,
@@ -897,7 +918,7 @@ export function buildDishReason(
         pickIndex,
         usedReasons
       );
-      if (shared) candidates.push(shared);
+      if (shared) return shared;
     }
 
     if (
@@ -916,7 +937,7 @@ export function buildDishReason(
           pickIndex,
           usedReasons
         );
-        if (bridge) candidates.push(bridge);
+        if (bridge) return bridge;
       }
     }
 
@@ -929,18 +950,7 @@ export function buildDishReason(
     );
     if (proteinReason) candidates.push(proteinReason);
 
-    if (anchorStyle === dishStyle) {
-      const styleBuilders = STYLE_REASONS[anchorStyle] ?? STYLE_REASONS.comfort;
-      const styleReason = chooseUniqueReason(
-        styleBuilders,
-        anchorDish,
-        dish,
-        restaurant,
-        pickIndex,
-        usedReasons
-      );
-      if (styleReason) candidates.push(styleReason);
-    } else if (anchorStyle !== dishStyle && !anchorDessert && !dishDessert) {
+    if (anchorStyle !== dishStyle && !anchorDessert && !dishDessert) {
       candidates.push(
         `Your ${dishLabel(anchorDish)} post was ${STYLE_WORDS[anchorStyle]}; ${dishLabel(dish)} tries ${STYLE_WORDS[dishStyle]} food instead.`,
         `You usually post ${STYLE_WORDS[anchorStyle]} plates like ${dishLabel(anchorDish)}; ${dishLabel(dish)} switches lanes.`
@@ -960,7 +970,7 @@ export function buildDishReason(
       pickIndex,
       usedReasons
     );
-    if (contrast) candidates.push(contrast);
+    if (contrast) return contrast;
     candidates.push(
       `You post sweets like ${dishLabel(anchorDish)}; ${dishLabel(dish)} is a savory change of pace.`,
       `Not a dessert match: ${dishLabel(dish)} at ${restaurantLabel(restaurant)} is a different kind of order.`
@@ -979,7 +989,7 @@ export function buildDishReason(
       pickIndex,
       usedReasons
     );
-    if (styleReason) candidates.push(styleReason);
+    if (styleReason) return styleReason;
 
     if (anchorStyle !== dishStyle) {
       candidates.push(
@@ -997,7 +1007,12 @@ export function buildDishReason(
 
   for (const reason of candidates) {
     const finalized = finalizeReason(reason);
-    if (!finalized || isGenericReason(finalized) || isTooSimilar(finalized, usedReasons)) {
+    if (
+      !finalized ||
+      wordCount(finalized) < RECOMMENDATION_REASON_MIN_WORDS ||
+      isGenericReason(finalized) ||
+      isTooSimilar(finalized, usedReasons)
+    ) {
       continue;
     }
     usedReasons.add(reasonSignature(finalized));
@@ -1023,11 +1038,12 @@ export function resolveDishReason(
   locationLabel: string | null,
   options?: ReasonBuildOptions
 ) {
-  const cleaned = finalizeReason(reason);
+  const cleaned = finalizeReason(normalizeReasonVoice(reason));
   const usedReasons = options?.usedReasons ?? new Set<string>();
 
   if (
     cleaned &&
+    wordCount(cleaned) >= RECOMMENDATION_REASON_MIN_WORDS &&
     !isGenericReason(cleaned) &&
     !isTooSimilar(cleaned, usedReasons)
   ) {

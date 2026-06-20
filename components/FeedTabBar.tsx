@@ -1,9 +1,8 @@
 import type { FeedTab } from "@/lib/feed-scope";
 
 const TABS: { id: FeedTab; label: string }[] = [
-  { id: "for_you", label: "For You" },
-  { id: "following", label: "Following" },
-  { id: "browse", label: "Browse" },
+  { id: "rate", label: "Rate" },
+  { id: "explore", label: "Explore" },
 ];
 
 export function FeedTabBar({

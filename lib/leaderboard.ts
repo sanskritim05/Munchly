@@ -10,6 +10,7 @@ export interface LeaderboardEntry {
   rank: number;
   score: number;
   imageUrl: string | null;
+  restaurantName: string | null;
   dishName: string | null;
   username: string;
 }
@@ -30,10 +31,34 @@ export function voteCount(plate: { hot_count?: number | null; not_count?: number
   return (plate.hot_count ?? 0) + (plate.not_count ?? 0);
 }
 
+const LEADERBOARD_PRIOR_SCORE = 5;
+const LEADERBOARD_PRIOR_VOTES = 5;
+
+/** Ranking score that balances plate score with vote volume. */
+export function leaderboardRankScore(plate: {
+  score: number | string;
+  hot_count?: number | null;
+  not_count?: number | null;
+}) {
+  const votes = voteCount(plate);
+  if (votes === 0) return 0;
+
+  const score = Number(plate.score);
+  return (score * votes + LEADERBOARD_PRIOR_SCORE * LEADERBOARD_PRIOR_VOTES) / (votes + LEADERBOARD_PRIOR_VOTES);
+}
+
 export function rankEligiblePlates<
   T extends { score: number | string; hot_count?: number | null; not_count?: number | null },
 >(plates: T[]) {
-  const sorted = [...plates].sort((a, b) => Number(b.score) - Number(a.score));
+  const sorted = [...plates].sort((a, b) => {
+    const rankDiff = leaderboardRankScore(b) - leaderboardRankScore(a);
+    if (rankDiff !== 0) return rankDiff;
+
+    const voteDiff = voteCount(b) - voteCount(a);
+    if (voteDiff !== 0) return voteDiff;
+
+    return Number(b.score) - Number(a.score);
+  });
   let eligible = sorted.filter((plate) => voteCount(plate) >= LEADERBOARD_MIN_VOTES);
 
   if (eligible.length < LEADERBOARD_LIMIT) {
@@ -57,6 +82,7 @@ function toEntry(
     id: string;
     score: number | string;
     image_url?: string | null;
+    restaurant_name?: string | null;
     dish_name?: string | null;
     is_active?: boolean | null;
     profiles?: { username?: string | null } | { username?: string | null }[] | null;
@@ -72,6 +98,7 @@ function toEntry(
     rank,
     score: Number(plate.score),
     imageUrl: plate.image_url ?? null,
+    restaurantName: plate.restaurant_name ?? null,
     dishName: plate.dish_name ?? null,
     username: profileUsername(profile),
   };
@@ -83,7 +110,7 @@ export async function fetchCachedWeeklyLeaderboard(
 ) {
   const { data: weekly } = await supabase
     .from("leaderboard_weekly")
-    .select("rank, score, plate_id, plates(id, image_url, dish_name, is_active), profiles(username)")
+    .select("rank, score, plate_id, plates(id, image_url, dish_name, restaurant_name, is_active), profiles(username)")
     .eq("week_start", weekStart)
     .order("rank", { ascending: true })
     .limit(LEADERBOARD_LIMIT);
@@ -99,6 +126,7 @@ export async function fetchCachedWeeklyLeaderboard(
         id: row.plate_id,
         score: row.score,
         image_url: plate.image_url,
+        restaurant_name: plate.restaurant_name,
         dish_name: plate.dish_name,
         is_active: plate.is_active,
         profiles: Array.isArray(row.profiles) ? row.profiles[0] : row.profiles,
@@ -115,7 +143,7 @@ export async function fetchCachedWeeklyLeaderboard(
 export async function fetchLiveWeeklyLeaderboard(supabase: SupabaseClient) {
   const { data: plates } = await supabase
     .from("plates")
-    .select("id, score, hot_count, not_count, image_url, dish_name, is_active, profiles(username)")
+    .select("id, score, hot_count, not_count, image_url, dish_name, restaurant_name, is_active, profiles(username)")
     .gte("created_at", getLookbackSince())
     .eq("is_active", true);
 
@@ -131,9 +159,9 @@ export async function fetchLiveWeeklyLeaderboard(supabase: SupabaseClient) {
 }
 
 export async function fetchWeeklyLeaderboard(supabase: SupabaseClient) {
-  const cached = await fetchCachedWeeklyLeaderboard(supabase);
-  if (cached.length > 0) return cached;
-  return fetchLiveWeeklyLeaderboard(supabase);
+  const live = await fetchLiveWeeklyLeaderboard(supabase);
+  if (live.length > 0) return live;
+  return fetchCachedWeeklyLeaderboard(supabase);
 }
 
 export async function refreshWeeklyLeaderboardCache(supabase: SupabaseClient) {

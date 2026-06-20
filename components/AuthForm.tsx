@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppIcon } from "@/components/AppIcon";
 import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
-import { getPostAuthPath } from "@/lib/auth-redirect";
+import { getPostAuthPath, resolveAuthNext } from "@/lib/auth-redirect";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
@@ -18,7 +18,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const next = searchParams.get("next") || "/swipe";
+  const next = resolveAuthNext(searchParams.get("next"));
   const nextQuery = next !== "/swipe" ? `?next=${encodeURIComponent(next)}` : "";
   const isSignIn = mode === "signin";
 

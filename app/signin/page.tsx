@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { UsernameSignInForm } from "@/components/UsernameSignInForm";
+import { fetchLandingCarouselPlates } from "@/lib/landing-carousel";
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const plates = await fetchLandingCarouselPlates();
+
   return (
     <Suspense
       fallback={
@@ -10,7 +13,7 @@ export default function SignInPage() {
         </div>
       }
     >
-      <UsernameSignInForm />
+      <UsernameSignInForm plates={plates} />
     </Suspense>
   );
 }
