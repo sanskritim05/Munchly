@@ -1,6 +1,6 @@
 {
-  "name": "Plate Check",
-  "short_name": "Plate Check",
+  "name": "Munchly",
+  "short_name": "Munchly",
   "description": "Hot or Not for food photos",
   "start_url": "/",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "/favicon.png?v=8",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"

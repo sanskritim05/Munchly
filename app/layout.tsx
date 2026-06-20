@@ -19,9 +19,13 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "PlateCheck | Is your food a 10?",
-  description: "PlateCheck. Post it. Rate it. Hot or Not for food photos.",
+  title: "Munchly | Is your food a 10?",
+  description: "Munchly. Post it. Rate it. Hot or Not for food photos.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/favicon.png?v=8", type: "image/png" }],
+    apple: [{ url: "/favicon.png?v=8", type: "image/png" }],
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
 };
 
