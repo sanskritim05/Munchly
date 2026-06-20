@@ -59,13 +59,11 @@ function mapPlate(p: RawPlate, followingSet: Set<string>) {
 }
 
 function orderEveryoneFeed(plates: RawPlate[], followingSet: Set<string>, ratedSet: Set<string>) {
-  const unrated = plates.filter((p) => !ratedSet.has(p.id));
-  const fromFollowing = unrated
-    .filter((p) => followingSet.has(p.user_id))
+  const unrated = plates
+    .filter((p) => !ratedSet.has(p.id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  const fromEveryone = shuffle(unrated.filter((p) => !followingSet.has(p.user_id)));
 
-  return [...fromFollowing, ...fromEveryone]
+  return shuffle(unrated)
     .slice(0, 30)
     .map((p) => mapPlate(p, followingSet));
 }
@@ -143,6 +141,7 @@ export async function GET(request: Request) {
     )
     .eq("is_active", true)
     .neq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(100);
 
   if (error) {

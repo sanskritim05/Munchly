@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
-import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
@@ -31,10 +30,10 @@ interface BrowsePlate {
 
 export function BrowseFeed({
   filter = "everyone",
-  onFilterChange,
+  onFollowingCountChange,
 }: {
   filter?: FeedFilter;
-  onFilterChange?: (filter: FeedFilter) => void;
+  onFollowingCountChange?: (count: number) => void;
 }) {
   const { user, getAccessToken, loading: authLoading } = useAuth();
   const [plates, setPlates] = useState<BrowsePlate[]>([]);
@@ -54,11 +53,13 @@ export function BrowseFeed({
     const res = await fetch(`/api/feed/browse?filter=${filter}`, { headers });
     const data = await res.json();
     setPlates(data.plates ?? []);
-    setFollowingCount(data.following_count ?? 0);
+    const count = data.following_count ?? 0;
+    setFollowingCount(count);
+    onFollowingCountChange?.(count);
     setLoading(false);
     setRefreshing(false);
     return res.ok;
-  }, [filter, getAccessToken]);
+  }, [filter, getAccessToken, onFollowingCountChange]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -76,44 +77,30 @@ export function BrowseFeed({
     );
   }
 
-  const filterBar =
-    registered && onFilterChange ? (
-      <div className="relative z-30 shrink-0 bg-[var(--bg)] px-page pb-1 pt-2">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <FeedFilterToggle
-              filter={filter}
-              onChange={onFilterChange}
-              followingCount={followingCount}
-            />
-            {!loading && plates.length > 0 ? (
-              <p className={`${feedMetaClass} mt-2`}>
-                {plates.length} post{plates.length === 1 ? "" : "s"}
-                {filter === "following" ? " from people you follow" : ""}
-              </p>
-            ) : null}
-          </div>
-          {!loading && plates.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                setRefreshing(true);
-                void loadBrowse();
-              }}
-              disabled={refreshing}
-              className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          ) : null}
-        </div>
+  const browseMeta =
+    registered && !loading && plates.length > 0 ? (
+      <div className="mb-4 flex items-end justify-between gap-3 px-page">
+        <p className={`${feedMetaClass}`}>
+          {plates.length} post{plates.length === 1 ? "" : "s"}
+          {filter === "following" ? " from people you follow" : ""}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setRefreshing(true);
+            void loadBrowse();
+          }}
+          disabled={refreshing}
+          className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
+        >
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </div>
     ) : null;
 
   if (loading) {
     return (
       <div className="flex h-full flex-col">
-        {filterBar}
         <div className="flex flex-1 items-center justify-center px-page">
           <p className={feedLoadingClass}>Loading posts...</p>
         </div>
@@ -125,7 +112,6 @@ export function BrowseFeed({
     if (filter === "following" && registered) {
       return (
         <div className="flex h-full flex-col">
-          {filterBar}
           <FollowingFeedEmptyState followingCount={followingCount} />
         </div>
       );
@@ -133,7 +119,6 @@ export function BrowseFeed({
 
     return (
       <div className="flex h-full flex-col">
-        {filterBar}
         <FeedViewportEmpty
           title="no posts yet"
           description="When others post plates, you can explore them here."
@@ -183,7 +168,7 @@ export function BrowseFeed({
         </p>
       ) : null}
 
-      {filterBar}
+      {browseMeta}
 
       <ul className="space-y-4 px-page">
         {plates.map((plate) => {

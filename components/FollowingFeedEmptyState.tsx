@@ -9,14 +9,15 @@ import { isRegisteredUser } from "@/lib/auth-user";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 export function FollowingFeedEmptyState({
-  followingCount,
+  ratedAll = false,
 }: {
-  followingCount: number;
+  followingCount?: number;
+  followingHasPosts?: boolean;
+  ratedAll?: boolean;
 }) {
   const { user } = useAuth();
   const [username, setUsername] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const followsNobody = followingCount === 0;
 
   useEffect(() => {
     if (!isRegisteredUser(user)) return;
@@ -54,51 +55,39 @@ export function FollowingFeedEmptyState({
     }
   }
 
-  if (followsNobody) {
+  if (ratedAll) {
     return (
       <FeedViewportEmpty
-        title="follow people to see their plates here"
-        description="find people on Top or invite friends to follow you"
-      >
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/leaderboard"
-            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
-          >
-            view top plates →
-          </Link>
-          {username ? (
-            <button
-              type="button"
-              onClick={() => void inviteFriends()}
-              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold"
-            >
-              {copied ? "link copied!" : "invite them"}
-            </button>
-          ) : (
-            <span className="text-sm text-gray-400">Loading invite link...</span>
-          )}
-        </div>
-      </FeedViewportEmpty>
+        title="You've rated everything from people you follow"
+        description="Switch to All for more plates, or check back when they post something new."
+      />
     );
   }
 
-  const shareUrl = username ? profileUrl(username) : null;
-
   return (
-    <FeedViewportEmpty title="nobody you follow has posted yet">
-      {shareUrl ? (
-        <button
-          type="button"
-          onClick={() => void inviteFriends()}
-          disabled={!username}
-          className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold disabled:opacity-50"
+    <FeedViewportEmpty
+      title="follow people to see their plates here"
+      description="find people on Top or invite friends to follow you"
+    >
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <Link
+          href="/leaderboard"
+          className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
         >
-          {copied ? "link copied!" : "invite them"}
-        </button>
-      ) : (
-        <p className="text-sm text-gray-400">Loading your invite link...</p>
-      )}
+          view top plates →
+        </Link>
+        {username ? (
+          <button
+            type="button"
+            onClick={() => void inviteFriends()}
+            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold"
+          >
+            {copied ? "link copied!" : "invite them"}
+          </button>
+        ) : (
+          <span className="text-sm text-gray-400">Loading invite link...</span>
+        )}
+      </div>
     </FeedViewportEmpty>
   );
 }

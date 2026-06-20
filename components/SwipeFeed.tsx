@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BrowseFeed } from "@/components/BrowseFeed";
+import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedTabBar } from "@/components/FeedTabBar";
 import { PeopleSearchButton, PeopleSearchOverlay } from "@/components/PeopleSearchOverlay";
 import { RateFeed } from "@/components/RateFeed";
@@ -21,6 +22,7 @@ export function SwipeFeed() {
   const { user, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<FeedTab>("explore");
   const [filter, setFilter] = useState<FeedFilter>("everyone");
+  const [followingCount, setFollowingCount] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const tracked = useRef(false);
   const registered = isRegisteredUser(user);
@@ -70,6 +72,15 @@ export function SwipeFeed() {
           </div>
           <PeopleSearchButton onClick={() => setSearchOpen(true)} />
         </div>
+        {registered ? (
+          <div className="mt-2 px-page">
+            <FeedFilterToggle
+              filter={filter}
+              onChange={onFilterChange}
+              followingCount={followingCount}
+            />
+          </div>
+        ) : null}
       </div>
       <PeopleSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div
@@ -78,9 +89,16 @@ export function SwipeFeed() {
         }`}
       >
         {tab === "explore" ? (
-          <BrowseFeed filter={filter} onFilterChange={onFilterChange} />
+          <BrowseFeed
+            filter={filter}
+            onFollowingCountChange={setFollowingCount}
+          />
         ) : (
-          <RateFeed filter={filter} onFilterChange={onFilterChange} onSwitchToExplore={switchToExplore} />
+          <RateFeed
+            filter={filter}
+            onFollowingCountChange={setFollowingCount}
+            onSwitchToExplore={switchToExplore}
+          />
         )}
       </div>
     </div>
