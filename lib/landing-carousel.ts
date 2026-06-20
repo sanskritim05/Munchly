@@ -27,11 +27,21 @@ function mergeCarouselPlates(
   const seen = new Set<string>();
   const merged: LandingCarouselPlate[] = [];
 
-  for (const plate of [...LANDING_CAROUSEL_SEED_PLATES, ...dbPlates]) {
+  for (const plate of dbPlates) {
     if (seen.has(plate.image_url)) continue;
     seen.add(plate.image_url);
     merged.push(plate);
     if (merged.length >= limit) break;
+  }
+
+  // Only use bundled photos when there aren't enough user uploads yet.
+  if (merged.length < LANDING_CAROUSEL_MIN_TILES_PER_ROW) {
+    for (const plate of LANDING_CAROUSEL_SEED_PLATES) {
+      if (seen.has(plate.image_url)) continue;
+      seen.add(plate.image_url);
+      merged.push(plate);
+      if (merged.length >= limit) break;
+    }
   }
 
   return merged;
