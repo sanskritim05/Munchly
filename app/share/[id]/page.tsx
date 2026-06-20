@@ -8,13 +8,14 @@ import { SharePlateCard } from "@/components/SharePlateCard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { absoluteAppPath, sharePlateUrl } from "@/lib/app-url";
 import { shareScoreColor } from "@/lib/share-card";
+import { profilePrimaryLabel } from "@/lib/profile-display";
 import { getPlateTier } from "@/lib/tiers";
 
 async function getPlate(id: string) {
   const supabase = createAdminClient();
   const { data: plate } = await supabase
     .from("plates")
-    .select("*, profiles!plates_user_id_fkey(username, average_score, total_plates)")
+    .select("*, profiles!plates_user_id_fkey(username, display_name, average_score, total_plates)")
     .eq("id", id)
     .single();
 
@@ -29,23 +30,25 @@ export async function generateMetadata({
   const plate = await getPlate(params.id);
   const profile = Array.isArray(plate?.profiles) ? plate?.profiles[0] : plate?.profiles;
   const username = profile?.username ?? "foodie";
+  const displayName = profile?.display_name ?? null;
+  const ownerLabel = profilePrimaryLabel({ username, display_name: displayName });
   const score = Number(plate?.score ?? 0).toFixed(1);
   const dishName = plate?.dish_name ?? "a plate";
 
   const shareUrl = sharePlateUrl(params.id);
 
   return {
-    title: `@${username}'s ${dishName} scored ${score} | PlateCheck`,
+    title: `${ownerLabel}'s ${dishName} scored ${score} | PlateCheck`,
     description: "Hot or not for food photos. Rate this plate or post your own.",
     openGraph: {
-      title: `@${username}'s plate scored ${score}/10`,
+      title: `${ownerLabel}'s plate scored ${score}/10`,
       description: dishName,
       url: shareUrl,
       images: [absoluteAppPath(`/share/${params.id}/opengraph-image`)],
     },
     twitter: {
       card: "summary_large_image",
-      title: `@${username}'s plate scored ${score}/10`,
+      title: `${ownerLabel}'s plate scored ${score}/10`,
       description: dishName,
       images: [absoluteAppPath(`/share/${params.id}/opengraph-image`)],
     },
@@ -71,6 +74,8 @@ export default async function SharePage({ params }: { params: { id: string } }) 
 
   const profile = Array.isArray(plate.profiles) ? plate.profiles[0] : plate.profiles;
   const username = profile?.username ?? "foodie";
+  const displayName = profile?.display_name ?? null;
+  const ownerLabel = profilePrimaryLabel({ username, display_name: displayName });
   const score = Number(plate.score);
   const scoreColor = shareScoreColor(score);
   const tierLabel = getPlateTier(
@@ -90,7 +95,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
 
         <h1 className="text-center text-xl font-bold leading-snug text-[#f0ede6]">
           <span className="inline-flex flex-wrap items-baseline justify-center gap-x-1">
-            <span>@{username}&apos;s plate got a</span>
+            <span>{ownerLabel}&apos;s plate got a</span>
             <span className="tabular-nums" style={{ color: scoreColor }}>
               {score.toFixed(1)}
             </span>
@@ -102,6 +107,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           score={score}
           dishName={plate.dish_name ?? "Mystery Dish"}
           username={username}
+          displayName={displayName}
           tierLabel={tierLabel}
           hotCount={plate.hot_count ?? 0}
           notCount={plate.not_count ?? 0}

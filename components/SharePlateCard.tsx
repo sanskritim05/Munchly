@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { AppIcon } from "@/components/AppIcon";
+import { UserLabel } from "@/components/UserLabel";
 import { shareScoreColor } from "@/lib/share-card";
 
 export function SharePlateCard({
@@ -7,6 +8,7 @@ export function SharePlateCard({
   score,
   dishName,
   username,
+  displayName,
   tierLabel,
   hotCount,
   notCount,
@@ -15,6 +17,7 @@ export function SharePlateCard({
   score: number;
   dishName: string;
   username: string;
+  displayName?: string | null;
   tierLabel: string;
   hotCount: number;
   notCount: number;
@@ -69,7 +72,13 @@ export function SharePlateCard({
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#222] pt-4">
-          <span className="truncate text-sm font-semibold text-[#f0ede6]">@{username}</span>
+          <UserLabel
+            username={username}
+            displayName={displayName}
+            className="truncate text-sm text-[#f0ede6]"
+            nameClassName="font-semibold text-[#f0ede6]"
+            handleClassName="text-[#c9c4bc]"
+          />
           <span
             className="shrink-0 rounded-full border border-[#333] bg-[#151515] px-2.5 py-1 text-[11px] font-semibold text-[#c9c4bc]"
           >

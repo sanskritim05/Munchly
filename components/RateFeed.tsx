@@ -32,6 +32,7 @@ interface FeedPlate {
   restaurant_name: string | null;
   score: number;
   username: string;
+  display_name?: string | null;
   is_following?: boolean;
 }
 
@@ -100,6 +101,7 @@ function SwipeCard({
       <FeedPlateOverlay
         score={plate.score}
         username={plate.username}
+        displayName={plate.display_name}
         title={plate.dish_name ?? "Plate"}
         subtitle={plate.restaurant_name}
         isFollowing={plate.is_following}
@@ -290,7 +292,7 @@ export function RateFeed({
             ? filter === "following"
               ? "Switch to All to rate more plates, or explore posts and leave comments."
               : "Explore posts and leave comments, or check back later for new plates."
-            : "Explore what others posted, or find people on Top to follow."
+            : "Explore what others posted or find people on Top to follow."
         }
       >
         <div className="flex w-full flex-col items-center gap-3">

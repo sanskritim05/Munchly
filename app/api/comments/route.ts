@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       content,
       parent_id: parent_id || null,
     })
-    .select("*, profiles!comments_user_id_fkey(username)")
+    .select("*, profiles!comments_user_id_fkey(username, display_name)")
     .single();
 
   if (error) {

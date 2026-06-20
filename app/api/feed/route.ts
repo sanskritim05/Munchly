@@ -31,9 +31,9 @@ type RawPlate = {
   not_count: number;
   created_at: string;
   user_id: string;
-  profiles:
-    | { username: string | null; avatar_url: string | null }
-    | { username: string | null; avatar_url: string | null }[]
+    profiles:
+    | { username: string | null; display_name: string | null; avatar_url: string | null }
+    | { username: string | null; display_name: string | null; avatar_url: string | null }[]
     | null;
 };
 
@@ -49,6 +49,7 @@ function mapPlate(p: RawPlate, followingSet: Set<string>) {
     hot_count: p.hot_count,
     not_count: p.not_count,
     username: profile?.username ?? "anon",
+    display_name: profile?.display_name ?? null,
     avatar_url: profile?.avatar_url,
     is_following: followingSet.has(p.user_id),
   };
@@ -107,7 +108,7 @@ export async function GET(request: Request) {
       .from("plates")
       .select(
         `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
-         profiles!plates_user_id_fkey (username, avatar_url)`
+         profiles!plates_user_id_fkey (username, display_name, avatar_url)`
       )
       .eq("is_active", true)
       .neq("user_id", user.id)
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
     .from("plates")
     .select(
       `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
-       profiles!plates_user_id_fkey (username, avatar_url)`
+         profiles!plates_user_id_fkey (username, display_name, avatar_url)`
     )
     .eq("is_active", true)
     .neq("user_id", user.id)

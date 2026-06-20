@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppIcon } from "@/components/AppIcon";
 import { useAuth } from "@/components/AuthProvider";
 import { RECOMMENDATION_COUNT } from "@/lib/recommendations";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -513,7 +514,10 @@ export function TastePicks() {
     <div className="app-container px-page pb-page pt-4 sm:pt-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Taste picks</h1>
+          <div className="flex items-center gap-2">
+            <AppIcon kind="picks" size={28} className="h-7 w-7" />
+            <h1 className="text-2xl font-bold sm:text-3xl">Taste picks</h1>
+          </div>
           <p className="mt-2 text-sm text-gray-400">
             Suggestions for restaurants and dishes based on what you&apos;ve posted.
           </p>

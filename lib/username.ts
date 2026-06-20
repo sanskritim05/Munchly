@@ -4,7 +4,7 @@ export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 export const RESERVED_USERNAME_MESSAGE = "This username is reserved";
 
-const RESERVED_BRAND = "platecheck";
+const RESERVED_BRANDS = ["munchly", "platecheck"] as const;
 
 const BRAND_AFFIXES = [
   "official",
@@ -36,7 +36,7 @@ const BRAND_AFFIXES = [
 export interface UsernameValidationOptions {
   /** Skip reserved checks when the user is keeping their current username. */
   existingUsername?: string | null;
-  /** Allow the exact brand username (e.g. platecheck) for existing accounts. */
+  /** Allow the exact brand username (e.g. munchly) for existing accounts. */
   allowBrandUsername?: boolean;
 }
 
@@ -62,25 +62,30 @@ function compactUsername(value: string) {
 }
 
 export function isExactBrandUsername(value: string) {
-  return compactUsername(value) === RESERVED_BRAND;
+  const compact = compactUsername(value);
+  return RESERVED_BRANDS.includes(compact as (typeof RESERVED_BRANDS)[number]);
 }
 
-export function isReservedUsername(value: string) {
-  const compact = compactUsername(value);
-  if (!compact) return false;
-
-  if (compact.startsWith(RESERVED_BRAND) && compact.length > RESERVED_BRAND.length) {
+function isReservedBrandVariation(compact: string, brand: string) {
+  if (compact.startsWith(brand) && compact.length > brand.length) {
     return true;
   }
 
-  if (compact.endsWith(RESERVED_BRAND) && compact.length > RESERVED_BRAND.length) {
-    const prefix = compact.slice(0, -RESERVED_BRAND.length);
+  if (compact.endsWith(brand) && compact.length > brand.length) {
+    const prefix = compact.slice(0, -brand.length);
     if (/^\d+$/.test(prefix) || BRAND_AFFIXES.includes(prefix)) {
       return true;
     }
   }
 
   return false;
+}
+
+export function isReservedUsername(value: string) {
+  const compact = compactUsername(value);
+  if (!compact) return false;
+
+  return RESERVED_BRANDS.some((brand) => isReservedBrandVariation(compact, brand));
 }
 
 export function isValidUsername(value: string, options?: UsernameValidationOptions) {

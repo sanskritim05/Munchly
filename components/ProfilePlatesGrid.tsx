@@ -81,7 +81,7 @@ export function ProfilePlatesGrid({
           >
             <Image src={plate.image_url} alt="" fill className="object-cover" unoptimized />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-2">
+            <div className="on-media absolute inset-x-0 bottom-0 p-2">
               <ScoreBadge score={Number(plate.score)} size="sm" />
               {plate.restaurant_name ? (
                 <p className="mt-1 truncate text-xs font-bold leading-tight text-white">

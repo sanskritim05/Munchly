@@ -4,6 +4,7 @@ import {
   shareScoreColor,
   truncateRoast,
 } from "@/lib/share-card";
+import { profilePrimaryLabel } from "@/lib/profile-display";
 import { getPlateTier } from "@/lib/tiers";
 
 export const runtime = "edge";
@@ -25,18 +26,22 @@ export default async function OgImage({ params }: { params: { id: string } }) {
   const { data: plate } = await supabase
     .from("plates")
     .select(
-      "score, dish_name, image_url, ai_roast, profiles!plates_user_id_fkey(username, average_score, total_plates)"
+      "score, dish_name, image_url, ai_roast, profiles!plates_user_id_fkey(username, display_name, average_score, total_plates)"
     )
     .eq("id", params.id)
     .single();
 
   const score = Number(plate?.score ?? 0);
   const profile = plate?.profiles as
-    | { username: string; average_score: number; total_plates: number }
-    | { username: string; average_score: number; total_plates: number }[]
+    | { username: string; display_name: string | null; average_score: number; total_plates: number }
+    | { username: string; display_name: string | null; average_score: number; total_plates: number }[]
     | null;
   const profileRow = Array.isArray(profile) ? profile[0] : profile;
-  const username = profileRow?.username;
+  const username = profileRow?.username ?? "foodie";
+  const ownerLabel = profilePrimaryLabel({
+    username,
+    display_name: profileRow?.display_name ?? null,
+  });
   const dishName = plate?.dish_name ?? "Mystery Dish";
   const roast = truncateRoast(plate?.ai_roast);
   const scoreColor = shareScoreColor(score);
@@ -170,7 +175,7 @@ export default async function OgImage({ params }: { params: { id: string } }) {
             fontSize: 18,
           }}
         >
-          <span style={{ color: "#f0ede6", fontWeight: 700 }}>@{username ?? "foodie"}</span>
+          <span style={{ color: "#f0ede6", fontWeight: 700 }}>{ownerLabel}</span>
           <span style={{ color: "#c9c4bc", fontWeight: 700 }}>{tierLabel}</span>
         </div>
       </div>

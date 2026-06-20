@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AppIcon } from "@/components/AppIcon";
 import { AnalyticsOnce } from "@/components/AnalyticsOnce";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { UserLabel } from "@/components/UserLabel";
 import { fetchWeeklyLeaderboard } from "@/lib/leaderboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -19,7 +20,6 @@ export default async function LeaderboardPage() {
         This Week&apos;s Hottest Plates
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Top plates from the last 7 days, ranked by score and number of ratings.
       </p>
 
       <ul className="mt-6 space-y-3">
@@ -66,7 +66,15 @@ export default async function LeaderboardPage() {
                   {!entry.restaurantName && !entry.dishName ? (
                     <p className="font-bold">Plate</p>
                   ) : null}
-                  <p className="mt-1 truncate text-sm text-gray-400">@{entry.username}</p>
+                  <div className="mt-1">
+                    <UserLabel
+                      username={entry.username}
+                      displayName={entry.displayName}
+                      className="truncate text-sm"
+                      nameClassName="font-medium text-gray-200"
+                      handleClassName="text-gray-400"
+                    />
+                  </div>
                 </div>
                 <ScoreBadge score={entry.score} size="sm" />
               </Link>

@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
-import { AppLogo } from "@/components/AppLogo";
 import { ImageCropModal } from "@/components/ImageCropModal";
 import { RestaurantAutocomplete } from "@/components/RestaurantAutocomplete";
 import { useAuth } from "@/components/AuthProvider";
@@ -207,10 +206,7 @@ export function PostPlateForm() {
   if (checkingLimit && user) {
     return (
       <div className="app-container px-page pb-page pt-4 sm:pt-6">
-        <div className="mb-6 flex items-center gap-3">
-          <AppLogo size={44} />
-          <h1 className="text-2xl font-bold">Post a plate</h1>
-        </div>
+        <h1 className="mb-6 text-2xl font-bold">Post a plate</h1>
         <p className="text-muted text-sm">Checking your posting limit...</p>
       </div>
     );
@@ -219,10 +215,7 @@ export function PostPlateForm() {
   if (dailyLimitReached) {
     return (
       <div className="app-container px-page pb-page pt-4 sm:pt-6">
-        <div className="mb-6 flex items-center gap-3">
-          <AppLogo size={44} />
-          <h1 className="text-2xl font-bold">Post a plate</h1>
-        </div>
+        <h1 className="mb-6 text-2xl font-bold">Post a plate</h1>
         <div className="mx-auto w-full max-w-sm space-y-4 rounded-2xl border border-border bg-surface p-6 text-center">
           <p className="text-sm">{dailyPlateLimitMessage()}</p>
         </div>
@@ -232,10 +225,7 @@ export function PostPlateForm() {
 
   return (
     <form onSubmit={onSubmit} className="app-container px-page pb-page pt-4 sm:pt-6">
-      <div className="mb-6 flex items-center gap-3">
-        <AppLogo size={44} />
-        <h1 className="text-2xl font-bold">Post a plate</h1>
-      </div>
+      <h1 className="mb-6 text-2xl font-bold">Post a plate</h1>
 
       <div className="mx-auto w-full max-w-sm space-y-4">
         <button

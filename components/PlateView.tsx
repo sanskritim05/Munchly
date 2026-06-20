@@ -10,6 +10,7 @@ import { PlateEditForm } from "@/components/PlateEditForm";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { ScoreMilestoneLayer } from "@/components/ScoreMilestoneOverlay";
 import { PlatePresenceIndicator } from "@/components/PlatePresenceIndicator";
+import { UserLabel } from "@/components/UserLabel";
 import { useAuth } from "@/components/AuthProvider";
 import { isRegisteredUser } from "@/lib/auth-user";
 import {
@@ -29,7 +30,7 @@ interface Plate {
   hot_count: number;
   not_count: number;
   caption: string | null;
-  profiles: { username: string } | { username: string }[] | null;
+  profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null;
 }
 
 interface Comment {
@@ -38,13 +39,16 @@ interface Comment {
   parent_id: string | null;
   like_count: number;
   user_id: string;
-  profiles: { username: string } | { username: string }[] | null;
+  profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null;
   liked_by_me?: boolean;
 }
 
-function commentUsername(c: Comment): string {
+function commentProfile(c: Comment) {
   const p = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-  return p?.username ?? "foodie";
+  return {
+    username: p?.username ?? "foodie",
+    display_name: p?.display_name ?? null,
+  };
 }
 
 export function PlateView({
@@ -117,7 +121,7 @@ export function PlateView({
     async function load() {
       const { data } = await supabase
         .from("plates")
-        .select("*, profiles!plates_user_id_fkey(username)")
+        .select("*, profiles!plates_user_id_fkey(username, display_name)")
         .eq("id", plateId)
         .eq("is_active", true)
         .maybeSingle();
@@ -126,7 +130,7 @@ export function PlateView({
 
       const { data: cmts } = await supabase
         .from("comments")
-        .select("id, content, parent_id, like_count, user_id, profiles!comments_user_id_fkey(username)")
+        .select("id, content, parent_id, like_count, user_id, profiles!comments_user_id_fkey(username, display_name)")
         .eq("plate_id", plateId)
         .order("created_at", { ascending: true });
 
@@ -433,12 +437,14 @@ export function PlateView({
           <ScoreBadge score={Number(plate.score)} size="lg" />
         </motion.div>
         {profile?.username ? (
-          <Link
+          <UserLabel
+            username={profile.username}
+            displayName={profile.display_name}
             href={`/profile/${profile.username}`}
             className="text-purple transition-colors hover:text-hot hover:underline"
-          >
-            @{profile.username}
-          </Link>
+            nameClassName="font-semibold"
+            handleClassName="text-purple/80"
+          />
         ) : (
           <p className="text-gray-400">@foodie</p>
         )}
@@ -521,7 +527,14 @@ export function PlateView({
         <ul className="space-y-3">
           {topLevel.map((c) => (
             <li key={c.id} className="rounded-xl bg-surface p-3 text-sm">
-              <span className="font-bold text-purple">@{commentUsername(c)}</span> {c.content}
+              <UserLabel
+                username={commentProfile(c).username}
+                displayName={commentProfile(c).display_name}
+                className="text-purple"
+                nameClassName="font-bold"
+                handleClassName="font-bold text-purple/80"
+              />{" "}
+              {c.content}
               <OwnerCommentActions c={c} />
               {replyingTo === c.id ? (
                 <div className="mt-2 flex gap-2">
@@ -552,7 +565,13 @@ export function PlateView({
                 <ul className="mt-3 space-y-2 border-l-2 border-border pl-3">
                   {(repliesByParent[c.id] ?? []).map((reply) => (
                     <li key={reply.id}>
-                      <span className="font-bold text-purple">@{commentUsername(reply)}</span>{" "}
+                      <UserLabel
+                        username={commentProfile(reply).username}
+                        displayName={commentProfile(reply).display_name}
+                        className="text-purple"
+                        nameClassName="font-bold"
+                        handleClassName="font-bold text-purple/80"
+                      />{" "}
                       {reply.content}
                       <OwnerCommentActions c={reply} />
                     </li>

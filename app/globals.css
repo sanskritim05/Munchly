@@ -138,6 +138,31 @@ body::-webkit-scrollbar {
   color: var(--muted);
 }
 
+/* Photo overlays keep light text in both themes */
+.on-media {
+  --on-media-fg: #ffffff;
+  --on-media-muted: #d1d5db;
+  --on-media-subtle: #9ca3af;
+}
+
+[data-appearance="light"] .on-media .text-white,
+[data-appearance="light"] .on-media .text-\[\#f0ede6\] {
+  color: var(--on-media-fg);
+}
+
+[data-appearance="light"] .on-media .text-gray-200,
+[data-appearance="light"] .on-media .text-gray-300 {
+  color: var(--on-media-muted);
+}
+
+[data-appearance="light"] .on-media .text-gray-400 {
+  color: var(--on-media-subtle);
+}
+
+[data-appearance="light"] .score-badge {
+  color: #ffffff;
+}
+
 [data-appearance="light"] .border-\[\#222\],
 [data-appearance="light"] .border-\[\#333\],
 [data-appearance="light"] .border-\[\#555\] {

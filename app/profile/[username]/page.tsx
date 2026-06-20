@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AppIcon } from "@/components/AppIcon";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { ProfileStatsSection } from "@/components/ProfileStatsSection";
 import { ProfilePlatesGrid } from "@/components/ProfilePlatesGrid";
 import { ProfileSettingsButton } from "@/components/ProfileSettingsButton";
 import { ProfileViewTracker } from "@/components/ProfileViewTracker";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { pickBestPlate, voteCount } from "@/lib/leaderboard";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +37,13 @@ export default async function ProfilePage({
 
   const { data: plates } = await supabase
     .from("plates")
-    .select("id, image_url, score, dish_name, restaurant_name")
+    .select("id, image_url, score, dish_name, restaurant_name, hot_count, not_count")
     .eq("user_id", profile.id)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  const best =
-    plates?.length &&
-    [...plates].sort((a, b) => Number(b.score) - Number(a.score))[0];
+  const best = plates?.length ? pickBestPlate(plates) : null;
+  const bestVotes = best ? voteCount(best) : 0;
 
   return (
     <div className="app-container px-page pb-page pt-4 sm:pt-6">
@@ -72,9 +71,7 @@ export default async function ProfilePage({
           href={`/plate/${best.id}`}
           className="mt-6 block rounded-2xl border border-hot/50 bg-surface p-4"
         >
-          <p className="flex items-center gap-1 text-sm text-hot">
-            <AppIcon kind="trophy" size={16} /> Best Plate
-          </p>
+          <p className="text-sm font-semibold text-hot">Best Plate</p>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative h-16 w-16 overflow-hidden rounded-xl">
               <Image src={best.image_url} alt="" fill className="object-cover" unoptimized />
@@ -91,8 +88,11 @@ export default async function ProfilePage({
                   best.restaurant_name ?? best.dish_name ?? "Plate"
                 )}
               </p>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <ScoreBadge score={Number(best.score)} size="sm" />
+                <span className="text-sm text-gray-400">
+                  {bestVotes} vote{bestVotes === 1 ? "" : "s"}
+                </span>
               </div>
             </div>
           </div>

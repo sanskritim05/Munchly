@@ -24,6 +24,7 @@ interface BrowsePlate {
   not_count: number;
   comment_count: number;
   username: string;
+  display_name?: string | null;
   is_following?: boolean;
 }
 
@@ -187,6 +188,7 @@ export function BrowseFeed({
                   <FeedPlateOverlay
                     score={plate.score}
                     username={plate.username}
+                    displayName={plate.display_name}
                     title={plate.dish_name ?? "Plate"}
                     subtitle={plate.restaurant_name}
                     isFollowing={plate.is_following}

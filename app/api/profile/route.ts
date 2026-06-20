@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import {
@@ -113,6 +114,12 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ error: error?.message ?? "Failed to update profile" }, { status: 500 });
   }
+
+  revalidatePath(`/profile/${profile.username}`);
+  if (usernameChanging) {
+    revalidatePath(`/profile/${current.username}`);
+  }
+  revalidatePath("/leaderboard");
 
   return NextResponse.json({
     profile,

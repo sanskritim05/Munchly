@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       .from("plates")
       .select(
         `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, comment_count, created_at, user_id,
-         profiles!plates_user_id_fkey (username, avatar_url)`
+         profiles!plates_user_id_fkey (username, display_name, avatar_url)`
       )
       .eq("is_active", true)
       .in("user_id", followingIds)
@@ -62,6 +62,7 @@ export async function GET(request: Request) {
         comment_count: p.comment_count ?? 0,
         created_at: p.created_at,
         username: profile?.username ?? "anon",
+        display_name: profile?.display_name ?? null,
         avatar_url: profile?.avatar_url,
         is_following: true,
       };
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
     .from("plates")
     .select(
       `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, comment_count, created_at, user_id,
-       profiles!plates_user_id_fkey (username, avatar_url)`
+       profiles!plates_user_id_fkey (username, display_name, avatar_url)`
     )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
@@ -111,6 +112,7 @@ export async function GET(request: Request) {
       comment_count: p.comment_count ?? 0,
       created_at: p.created_at,
       username: profile?.username ?? "anon",
+      display_name: profile?.display_name ?? null,
       avatar_url: profile?.avatar_url,
       is_following: followingSet.has(p.user_id),
     };

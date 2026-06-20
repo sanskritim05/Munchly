@@ -9,24 +9,14 @@ import { createBrowserClient } from "@/lib/supabase/client";
 
 const NAV_ICON_SIZE = 24;
 
-const TABS: { href: string; label: string; icon: AppIconKind | "picks"; match: (path: string) => boolean }[] = [
+const TABS: { href: string; label: string; icon: AppIconKind; match: (path: string) => boolean }[] = [
   { href: "/swipe", label: "Rate", icon: "flame", match: (p) => p.startsWith("/swipe") },
   { href: "/post", label: "Post", icon: "post", match: (p) => p.startsWith("/post") },
   { href: "/leaderboard", label: "Top", icon: "trophy", match: (p) => p.startsWith("/leaderboard") },
   { href: "/picks", label: "Picks", icon: "picks", match: (p) => p.startsWith("/picks") },
 ];
 
-function NavIcon({ kind }: { kind: AppIconKind | "picks" }) {
-  if (kind === "picks") {
-    return (
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center text-hot" aria-hidden>
-        <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
-          <path d="M12 2l1.2 4.2L17 7l-3.8 1.8L12 13l-1.2-4.2L7 7l3.8-1.8L12 2zm6 8.5 1 3.5 3.5 1-3.5 1-1 3.5-1-3.5-3.5-1 3.5-1 1-3.5 3.5-1-3.5-1zm-12 2 0.8 2.8 2.8 0.8-2.8 0.8L6 19l-0.8-2.8-2.8-0.8 2.8-0.8L6 12z" />
-        </svg>
-      </span>
-    );
-  }
-
+function NavIcon({ kind }: { kind: AppIconKind }) {
   return (
     <span className="flex h-6 w-6 shrink-0 items-center justify-center">
       <AppIcon kind={kind} size={NAV_ICON_SIZE} className="h-6 w-6" />
@@ -42,7 +32,7 @@ function NavTab({
 }: {
   href: string;
   label: string;
-  icon: AppIconKind | "picks";
+  icon: AppIconKind;
   active: boolean;
 }) {
   const router = useRouter();
