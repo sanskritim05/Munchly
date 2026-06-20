@@ -59,14 +59,14 @@ export async function PATCH(request: Request) {
   }
 
   if (usernameChanging) {
-    const error = identityChangeError("username", current.username_changed_at);
+    const error = identityChangeError("username", current.username_changed_at, current.username);
     if (error) {
       return NextResponse.json({ error }, { status: 429 });
     }
   }
 
   if (displayNameChanging) {
-    const error = identityChangeError("name", current.display_name_changed_at);
+    const error = identityChangeError("name", current.display_name_changed_at, current.username);
     if (error) {
       return NextResponse.json({ error }, { status: 429 });
     }
@@ -124,8 +124,11 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     profile,
     identity_limits: {
-      username_change_allowed: canChangeIdentity(profile.username_changed_at),
-      display_name_change_allowed: canChangeIdentity(profile.display_name_changed_at),
+      username_change_allowed: canChangeIdentity(profile.username_changed_at, profile.username),
+      display_name_change_allowed: canChangeIdentity(
+        profile.display_name_changed_at,
+        profile.username
+      ),
       username_changed_at: profile.username_changed_at,
       display_name_changed_at: profile.display_name_changed_at,
     },

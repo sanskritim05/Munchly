@@ -11,7 +11,7 @@ export interface MilestoneCelebration {
 }
 
 function storageKey(plateId: string) {
-  return `platecheck-milestones-${plateId}`;
+  return `munchly-milestones-${plateId}`;
 }
 
 export function getShownMilestones(plateId: string): number[] {

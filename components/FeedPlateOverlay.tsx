@@ -6,6 +6,7 @@ export function FeedPlateOverlay({
   score,
   username,
   displayName,
+  verified = false,
   title,
   subtitle,
   isFollowing = false,
@@ -14,6 +15,7 @@ export function FeedPlateOverlay({
   score: number;
   username: string;
   displayName?: string | null;
+  verified?: boolean;
   title: string;
   subtitle?: string | null;
   isFollowing?: boolean;
@@ -23,8 +25,14 @@ export function FeedPlateOverlay({
     <div className={`on-media pointer-events-none absolute bottom-0 left-0 right-0 p-4 sm:p-5 ${className}`}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <ScoreBadge score={score} size="sm" />
-        <span className="text-sm text-gray-300">
-          <UserLabel username={username} displayName={displayName} nameClassName="font-medium" />
+        <span className="text-sm">
+          <UserLabel
+            username={username}
+            displayName={displayName}
+            verified={verified}
+            nameClassName="font-medium text-white"
+            handleClassName="text-white/80"
+          />
           {isFollowing ? (
             <>
               <span className="text-white"> · </span>

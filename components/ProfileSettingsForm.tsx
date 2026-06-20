@@ -36,8 +36,11 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canChangeUsername = canChangeIdentity(initial.username_changed_at);
-  const canChangeDisplayName = canChangeIdentity(initial.display_name_changed_at);
+  const canChangeUsername = canChangeIdentity(initial.username_changed_at, initial.username);
+  const canChangeDisplayName = canChangeIdentity(
+    initial.display_name_changed_at,
+    initial.username
+  );
   const usernameUnlockDate = formatIdentityUnlockDate(initial.username_changed_at);
   const displayNameUnlockDate = formatIdentityUnlockDate(initial.display_name_changed_at);
 

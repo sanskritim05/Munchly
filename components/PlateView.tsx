@@ -13,6 +13,7 @@ import { PlatePresenceIndicator } from "@/components/PlatePresenceIndicator";
 import { UserLabel } from "@/components/UserLabel";
 import { useAuth } from "@/components/AuthProvider";
 import { isRegisteredUser } from "@/lib/auth-user";
+import { isVerifiedProfile } from "@/lib/profile-verified";
 import {
   getNewMilestoneCelebration,
   markMilestonesShown,
@@ -30,7 +31,7 @@ interface Plate {
   hot_count: number;
   not_count: number;
   caption: string | null;
-  profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null;
+  profiles: { username: string; display_name: string | null; total_plates?: number | null } | { username: string; display_name: string | null; total_plates?: number | null }[] | null;
 }
 
 interface Comment {
@@ -39,7 +40,7 @@ interface Comment {
   parent_id: string | null;
   like_count: number;
   user_id: string;
-  profiles: { username: string; display_name: string | null } | { username: string; display_name: string | null }[] | null;
+  profiles: { username: string; display_name: string | null; total_plates?: number | null } | { username: string; display_name: string | null; total_plates?: number | null }[] | null;
   liked_by_me?: boolean;
 }
 
@@ -48,6 +49,16 @@ function commentProfile(c: Comment) {
   return {
     username: p?.username ?? "foodie",
     display_name: p?.display_name ?? null,
+    verified: isVerifiedProfile({ username: p?.username, total_plates: p?.total_plates }),
+  };
+}
+
+function plateProfile(plate: Plate) {
+  const p = Array.isArray(plate.profiles) ? plate.profiles[0] : plate.profiles;
+  return {
+    username: p?.username ?? null,
+    display_name: p?.display_name ?? null,
+    verified: isVerifiedProfile({ username: p?.username, total_plates: p?.total_plates }),
   };
 }
 
@@ -121,7 +132,7 @@ export function PlateView({
     async function load() {
       const { data } = await supabase
         .from("plates")
-        .select("*, profiles!plates_user_id_fkey(username, display_name)")
+        .select("*, profiles!plates_user_id_fkey(username, display_name, total_plates)")
         .eq("id", plateId)
         .eq("is_active", true)
         .maybeSingle();
@@ -130,7 +141,7 @@ export function PlateView({
 
       const { data: cmts } = await supabase
         .from("comments")
-        .select("id, content, parent_id, like_count, user_id, profiles!comments_user_id_fkey(username, display_name)")
+        .select("id, content, parent_id, like_count, user_id, profiles!comments_user_id_fkey(username, display_name, total_plates)")
         .eq("plate_id", plateId)
         .order("created_at", { ascending: true });
 
@@ -440,6 +451,7 @@ export function PlateView({
           <UserLabel
             username={profile.username}
             displayName={profile.display_name}
+            verified={plateProfile(plate).verified}
             href={`/profile/${profile.username}`}
             className="text-purple transition-colors hover:text-hot hover:underline"
             nameClassName="font-semibold"
@@ -530,6 +542,7 @@ export function PlateView({
               <UserLabel
                 username={commentProfile(c).username}
                 displayName={commentProfile(c).display_name}
+                verified={commentProfile(c).verified}
                 className="text-purple"
                 nameClassName="font-bold"
                 handleClassName="font-bold text-purple/80"
@@ -568,6 +581,7 @@ export function PlateView({
                       <UserLabel
                         username={commentProfile(reply).username}
                         displayName={commentProfile(reply).display_name}
+                        verified={commentProfile(reply).verified}
                         className="text-purple"
                         nameClassName="font-bold"
                         handleClassName="font-bold text-purple/80"

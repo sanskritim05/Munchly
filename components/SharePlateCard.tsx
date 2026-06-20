@@ -9,6 +9,7 @@ export function SharePlateCard({
   dishName,
   username,
   displayName,
+  verified = false,
   tierLabel,
   hotCount,
   notCount,
@@ -18,6 +19,7 @@ export function SharePlateCard({
   dishName: string;
   username: string;
   displayName?: string | null;
+  verified?: boolean;
   tierLabel: string;
   hotCount: number;
   notCount: number;
@@ -75,6 +77,7 @@ export function SharePlateCard({
           <UserLabel
             username={username}
             displayName={displayName}
+            verified={verified}
             className="truncate text-sm text-[#f0ede6]"
             nameClassName="font-semibold text-[#f0ede6]"
             handleClassName="text-[#c9c4bc]"

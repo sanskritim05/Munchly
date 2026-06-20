@@ -29,6 +29,11 @@ export function sharePlateUrl(plateId: string) {
   return `${base}/share/${plateId}`;
 }
 
+export function profileUrl(username: string) {
+  const base = getAppBaseUrl() ?? "http://localhost:3000";
+  return `${base}/profile/${encodeURIComponent(username)}`;
+}
+
 export function absoluteAppPath(path: string) {
   const base = getAppBaseUrl();
   if (!base) return path;

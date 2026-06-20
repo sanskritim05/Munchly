@@ -1,30 +1,32 @@
-export type Theme = "dark" | "light" | "system";
+export type Theme = "dark" | "light";
 
-export type ResolvedTheme = "dark" | "light";
+export type ResolvedTheme = Theme;
 
-export const THEME_STORAGE_KEY = "platecheck_theme";
+export const THEME_STORAGE_KEY = "munchly_theme";
 
 export const THEME_OPTIONS: { id: Theme; label: string }[] = [
   { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
-  { id: "system", label: "System" },
 ];
 
 const THEME_IDS = new Set<string>(THEME_OPTIONS.map((t) => t.id));
 
-export function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+function resolveLegacyTheme(stored: string | null): Theme {
+  if (stored === "system") {
+    if (typeof window === "undefined") return "dark";
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
 
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
   if (stored && THEME_IDS.has(stored)) return stored as Theme;
   return "dark";
 }
 
+export function getStoredTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  return resolveLegacyTheme(localStorage.getItem(THEME_STORAGE_KEY));
+}
+
 export function resolveTheme(theme: Theme): ResolvedTheme {
-  if (theme === "system") {
-    if (typeof window === "undefined") return "dark";
-    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-  }
   return theme;
 }
 
@@ -45,4 +47,4 @@ export function applyTheme(theme: Theme): ResolvedTheme {
   return resolved;
 }
 
-export const themeInitScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var valid=${JSON.stringify(THEME_OPTIONS.map((t) => t.id))};var s=localStorage.getItem(k)||"dark";if(valid.indexOf(s)===-1)s="dark";var r=s==="system"?(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"):s;document.documentElement.setAttribute("data-theme",r);document.documentElement.setAttribute("data-appearance",r);document.documentElement.style.colorScheme=r;}catch(e){document.documentElement.setAttribute("data-theme","dark");document.documentElement.setAttribute("data-appearance","dark");}})();`;
+export const themeInitScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var valid=${JSON.stringify(THEME_OPTIONS.map((t) => t.id))};var s=localStorage.getItem(k)||"dark";if(s==="system")s=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";if(valid.indexOf(s)===-1)s="dark";document.documentElement.setAttribute("data-theme",s);document.documentElement.setAttribute("data-appearance",s);document.documentElement.style.colorScheme=s;}catch(e){document.documentElement.setAttribute("data-theme","dark");document.documentElement.setAttribute("data-appearance","dark");}})();`;

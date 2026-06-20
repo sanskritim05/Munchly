@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ensureFollowsOfficialAccount } from "@/lib/follows";
 import { authEmailUsername, syncAuthEmailForUsername } from "@/lib/username-auth";
 
 export async function POST(request: Request) {
@@ -58,6 +59,8 @@ export async function POST(request: Request) {
   if (error || !profile) {
     return NextResponse.json({ error: error?.message ?? "Failed to save profile" }, { status: 500 });
   }
+
+  await ensureFollowsOfficialAccount(supabase, user.id);
 
   const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
   const authUsername = authEmailUsername(authUser?.user?.email);

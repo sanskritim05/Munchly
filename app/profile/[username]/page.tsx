@@ -7,6 +7,7 @@ import { ProfileSettingsButton } from "@/components/ProfileSettingsButton";
 import { ProfileViewTracker } from "@/components/ProfileViewTracker";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { pickBestPlate, voteCount } from "@/lib/leaderboard";
+import { isVerifiedProfile } from "@/lib/profile-verified";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function ProfilePage({
   const bestVotes = best ? voteCount(best) : 0;
 
   return (
-    <div className="app-container px-page pb-page pt-4 sm:pt-6">
+    <div className="app-container relative px-page pb-page pt-4 sm:pt-6">
       <ProfileViewTracker profileUserId={profile.id} />
       <ProfileSettingsButton profileUserId={profile.id} />
 
@@ -57,10 +58,12 @@ export default async function ProfilePage({
         bio={profile.bio}
         averageScore={avgScore}
         totalPlates={totalPlates}
+        verified={isVerifiedProfile(profile)}
       />
 
       <ProfileStatsSection
         profileUserId={profile.id}
+        username={profile.username}
         totalPlates={totalPlates}
         avgScore={avgScore}
         initialFollowerCount={profile.follower_count ?? 0}
@@ -71,7 +74,7 @@ export default async function ProfilePage({
           href={`/plate/${best.id}`}
           className="mt-6 block rounded-2xl border border-hot/50 bg-surface p-4"
         >
-          <p className="text-sm font-semibold text-hot">Best Plate</p>
+          <p className="text-sm font-semibold text-hot">Your Best Plate</p>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative h-16 w-16 overflow-hidden rounded-xl">
               <Image src={best.image_url} alt="" fill className="object-cover" unoptimized />

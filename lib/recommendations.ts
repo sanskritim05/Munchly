@@ -329,7 +329,7 @@ Do NOT recommend any of these recently shown dishes: ${options.excludeDishes?.jo
       messages: [
         {
           role: "system",
-          content: `You are a food recommendation assistant for PlateCheck.
+          content: `You are a food recommendation assistant for Munchly.
 Return ONLY valid JSON, no markdown:
 {
   "taste_summary": string (optional, leave empty),

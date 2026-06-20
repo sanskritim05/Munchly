@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isVerifiedProfile } from "@/lib/profile-verified";
 
 function shuffle<T>(items: T[]) {
   const copy = [...items];
@@ -32,13 +33,14 @@ type RawPlate = {
   created_at: string;
   user_id: string;
     profiles:
-    | { username: string | null; display_name: string | null; avatar_url: string | null }
-    | { username: string | null; display_name: string | null; avatar_url: string | null }[]
+    | { username: string | null; display_name: string | null; avatar_url: string | null; total_plates: number | null }
+    | { username: string | null; display_name: string | null; avatar_url: string | null; total_plates: number | null }[]
     | null;
 };
 
 function mapPlate(p: RawPlate, followingSet: Set<string>) {
   const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+  const username = profile?.username ?? "anon";
   return {
     id: p.id,
     image_url: p.image_url,
@@ -48,10 +50,11 @@ function mapPlate(p: RawPlate, followingSet: Set<string>) {
     score: Number(p.score),
     hot_count: p.hot_count,
     not_count: p.not_count,
-    username: profile?.username ?? "anon",
+    username,
     display_name: profile?.display_name ?? null,
     avatar_url: profile?.avatar_url,
     is_following: followingSet.has(p.user_id),
+    is_verified: isVerifiedProfile({ username, total_plates: profile?.total_plates }),
   };
 }
 
@@ -108,7 +111,7 @@ export async function GET(request: Request) {
       .from("plates")
       .select(
         `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
-         profiles!plates_user_id_fkey (username, display_name, avatar_url)`
+         profiles!plates_user_id_fkey (username, display_name, avatar_url, total_plates)`
       )
       .eq("is_active", true)
       .neq("user_id", user.id)
@@ -136,7 +139,7 @@ export async function GET(request: Request) {
     .from("plates")
     .select(
       `id, image_url, caption, dish_name, restaurant_name, score, hot_count, not_count, created_at, user_id,
-         profiles!plates_user_id_fkey (username, display_name, avatar_url)`
+         profiles!plates_user_id_fkey (username, display_name, avatar_url, total_plates)`
     )
     .eq("is_active", true)
     .neq("user_id", user.id)

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { AppIcon } from "@/components/AppIcon";
 import { TierBadge } from "@/components/TierBadge";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export function ProfileHeader({
   displayName,
@@ -9,6 +10,7 @@ export function ProfileHeader({
   bio,
   averageScore,
   totalPlates,
+  verified = false,
 }: {
   displayName: string | null;
   username: string;
@@ -16,6 +18,7 @@ export function ProfileHeader({
   bio: string | null;
   averageScore: number;
   totalPlates: number;
+  verified?: boolean;
 }) {
   return (
     <div className="flex items-start gap-4">
@@ -34,8 +37,13 @@ export function ProfileHeader({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        {displayName ? <p className="text-lg font-semibold text-gray-200">{displayName}</p> : null}
-        <h1 className="text-2xl font-bold">@{username}</h1>
+        <p className="inline-flex min-w-0 items-center gap-1 text-xl font-bold sm:text-2xl">
+          <span className="truncate">{displayName?.trim() || `@${username}`}</span>
+          {verified ? <VerifiedBadge size={18} /> : null}
+        </p>
+        {displayName?.trim() ? (
+          <p className="mt-0.5 truncate text-sm text-gray-400">@{username}</p>
+        ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           <TierBadge averageScore={averageScore} totalPlates={totalPlates} />
           {bio ? (

@@ -62,7 +62,7 @@ async function searchCommunityRestaurants(query: string, limit = 4): Promise<Res
       .slice(0, limit)
       .map(([name, count]) => ({
         name,
-        detail: count > 1 ? `${count} plates on PlateCheck` : "Posted on PlateCheck",
+        detail: count > 1 ? `${count} plates on Munchly` : "Posted on Munchly",
       }));
   } catch {
     return [];

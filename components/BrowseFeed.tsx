@@ -26,6 +26,7 @@ interface BrowsePlate {
   username: string;
   display_name?: string | null;
   is_following?: boolean;
+  is_verified?: boolean;
 }
 
 export function BrowseFeed({
@@ -75,60 +76,105 @@ export function BrowseFeed({
     );
   }
 
+  const filterBar =
+    registered && onFilterChange ? (
+      <div className="relative z-30 shrink-0 bg-[var(--bg)] px-page pb-1 pt-2">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <FeedFilterToggle
+              filter={filter}
+              onChange={onFilterChange}
+              followingCount={followingCount}
+            />
+            {!loading && plates.length > 0 ? (
+              <p className={`${feedMetaClass} mt-2`}>
+                {plates.length} post{plates.length === 1 ? "" : "s"}
+                {filter === "following" ? " from people you follow" : ""}
+              </p>
+            ) : null}
+          </div>
+          {!loading && plates.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRefreshing(true);
+                void loadBrowse();
+              }}
+              disabled={refreshing}
+              className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    ) : null;
+
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center px-page">
-        <p className={feedLoadingClass}>Loading posts...</p>
+      <div className="flex h-full flex-col">
+        {filterBar}
+        <div className="flex flex-1 items-center justify-center px-page">
+          <p className={feedLoadingClass}>Loading posts...</p>
+        </div>
       </div>
     );
   }
 
   if (plates.length === 0) {
     if (filter === "following" && registered) {
-      return <FollowingFeedEmptyState followingCount={followingCount} />;
+      return (
+        <div className="flex h-full flex-col">
+          {filterBar}
+          <FollowingFeedEmptyState followingCount={followingCount} />
+        </div>
+      );
     }
 
     return (
-      <FeedViewportEmpty
-        title="no posts yet"
-        description="When others post plates, you can explore them here."
-      >
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              setRefreshing(true);
-              void loadBrowse();
-            }}
-            disabled={refreshing}
-            className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
-          >
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          {registered ? (
-            <Link
-              href="/post"
-              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+      <div className="flex h-full flex-col">
+        {filterBar}
+        <FeedViewportEmpty
+          title="no posts yet"
+          description="When others post plates, you can explore them here."
+        >
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setRefreshing(true);
+                void loadBrowse();
+              }}
+              disabled={refreshing}
+              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
             >
-              Post your plate
-            </Link>
-          ) : (
-            <Link
-              href="/get-started?next=/post"
-              className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
-            >
-              Get started
-            </Link>
-          )}
-        </div>
-      </FeedViewportEmpty>
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+            {registered ? (
+              <Link
+                href="/post"
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+              >
+                Post your plate
+              </Link>
+            ) : (
+              <Link
+                href="/get-started?next=/post"
+                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+              >
+                Get started
+              </Link>
+            )}
+          </div>
+        </FeedViewportEmpty>
+      </div>
     );
   }
 
   return (
-    <div className="app-container w-full px-page pb-6 pt-2">
+    <div className="app-container w-full pb-6">
       {!registered ? (
-        <p className="mb-4 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400">
+        <p className="mb-4 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400 mx-page mt-2">
           Exploring only.{" "}
           <Link href="/get-started?next=/swipe" className="font-semibold text-hot hover:underline">
             Create an account
@@ -137,34 +183,9 @@ export function BrowseFeed({
         </p>
       ) : null}
 
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          {registered && onFilterChange ? (
-            <FeedFilterToggle
-              filter={filter}
-              onChange={onFilterChange}
-              followingCount={followingCount}
-            />
-          ) : null}
-          <p className={`${feedMetaClass} ${registered && onFilterChange ? "mt-2" : ""}`}>
-            {plates.length} post{plates.length === 1 ? "" : "s"}
-            {filter === "following" ? " from people you follow" : ""}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setRefreshing(true);
-            void loadBrowse();
-          }}
-          disabled={refreshing}
-          className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
-        >
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
+      {filterBar}
 
-      <ul className="space-y-4">
+      <ul className="space-y-4 px-page">
         {plates.map((plate) => {
           const total = plate.hot_count + plate.not_count;
           const hotPct = total > 0 ? (plate.hot_count / total) * 100 : 50;
@@ -189,9 +210,10 @@ export function BrowseFeed({
                     score={plate.score}
                     username={plate.username}
                     displayName={plate.display_name}
+                    verified={plate.is_verified}
                     title={plate.dish_name ?? "Plate"}
                     subtitle={plate.restaurant_name}
-                    isFollowing={plate.is_following}
+                    isFollowing={filter !== "following" && plate.is_following}
                     className="bottom-0 p-5"
                   />
                 </div>

@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ensureFollowsOfficialAccount } from "@/lib/follows";
 import { isValidPassword, PASSWORD_MIN_LENGTH, usernameAuthEmail } from "@/lib/username-auth";
 import { getUsernameError, normalizeUsername } from "@/lib/username";
 
@@ -97,6 +98,8 @@ export async function POST(request: Request) {
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
   }
+
+  await ensureFollowsOfficialAccount(supabase, userId);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

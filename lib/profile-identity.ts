@@ -1,3 +1,5 @@
+import { isOfficialAccountUsername } from "@/lib/profile-verified";
+
 export const IDENTITY_CHANGE_COOLDOWN_DAYS = 30;
 
 export function getNextIdentityChangeDate(changedAt: string | null) {
@@ -8,7 +10,13 @@ export function getNextIdentityChangeDate(changedAt: string | null) {
   return next;
 }
 
-export function canChangeIdentity(changedAt: string | null, now = new Date()) {
+export function canChangeIdentity(
+  changedAt: string | null,
+  username?: string | null,
+  now = new Date()
+) {
+  if (isOfficialAccountUsername(username)) return true;
+
   const next = getNextIdentityChangeDate(changedAt);
   if (!next) return true;
   return now >= next;
@@ -27,9 +35,11 @@ export function formatIdentityUnlockDate(changedAt: string | null) {
 
 export function identityChangeError(
   field: "username" | "name",
-  changedAt: string | null
+  changedAt: string | null,
+  username?: string | null
 ) {
-  if (canChangeIdentity(changedAt)) return null;
+  if (isOfficialAccountUsername(username)) return null;
+  if (canChangeIdentity(changedAt, username)) return null;
 
   const unlockDate = formatIdentityUnlockDate(changedAt);
   if (!unlockDate) return null;

@@ -1,4 +1,4 @@
--- PlateCheck: run in Supabase SQL Editor
+-- Munchly: run in Supabase SQL Editor
 -- Also create Storage bucket "plates" (public) in Dashboard → Storage
 
 create table if not exists profiles (
@@ -186,6 +186,8 @@ create policy "Users can delete own comment likes" on comment_likes for delete u
 drop policy if exists "Follows are viewable by everyone" on follows;
 drop policy if exists "Users can insert own follows" on follows;
 drop policy if exists "Users can delete own follows" on follows;
-create policy "Follows are viewable by everyone" on follows for select using (true);
+drop policy if exists "Follows are viewable by everyone" on follows;
+drop policy if exists "Users can view own follows" on follows;
+create policy "Users can view own follows" on follows for select using (auth.uid() = follower_id);
 create policy "Users can insert own follows" on follows for insert with check (auth.uid() = follower_id);
 create policy "Users can delete own follows" on follows for delete using (auth.uid() = follower_id);

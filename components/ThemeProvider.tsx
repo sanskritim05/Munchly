@@ -39,13 +39,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(stored);
     setResolvedTheme(applyTheme(stored));
 
-    if (stored !== "system") return;
-
-    const media = window.matchMedia("(prefers-color-scheme: light)");
-    const onChange = () => setResolvedTheme(applyTheme("system"));
-
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
+    if (localStorage.getItem(THEME_STORAGE_KEY) === "system") {
+      localStorage.setItem(THEME_STORAGE_KEY, stored);
+    }
   }, []);
 
   const value = useMemo(

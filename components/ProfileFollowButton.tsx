@@ -4,12 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { isRegisteredUser } from "@/lib/auth-user";
+import { isOfficialAccountUsername } from "@/lib/profile-verified";
 
 export function ProfileFollowButton({
   profileUserId,
+  username,
+  onFollowingChange,
   onFollowerCountChange,
 }: {
   profileUserId: string;
+  username: string;
+  onFollowingChange?: () => void;
   onFollowerCountChange?: (count: number) => void;
 }) {
   const router = useRouter();
@@ -19,6 +24,7 @@ export function ProfileFollowButton({
   const [saving, setSaving] = useState(false);
 
   const isOwnProfile = user?.id === profileUserId;
+  const isOfficialAccount = isOfficialAccountUsername(username);
 
   useEffect(() => {
     async function loadStatus() {
@@ -49,11 +55,11 @@ export function ProfileFollowButton({
     }
 
     loadStatus();
-  }, [user, isOwnProfile, profileUserId, getAccessToken, onFollowerCountChange]);
+  }, [user, isOwnProfile, profileUserId, getAccessToken]);
 
   async function toggleFollow() {
     const token = getAccessToken();
-    if (!token || saving) return;
+    if (!token || saving || (isOfficialAccount && following)) return;
 
     setSaving(true);
     try {
@@ -74,6 +80,7 @@ export function ProfileFollowButton({
       if (res.ok) {
         const data = await res.json();
         setFollowing(Boolean(data.following));
+        onFollowingChange?.();
         if (typeof data.follower_count === "number") {
           onFollowerCountChange?.(data.follower_count);
         }
@@ -84,22 +91,24 @@ export function ProfileFollowButton({
     }
   }
 
-  if (!isRegisteredUser(user) || isOwnProfile || loading) {
+  if (!isRegisteredUser(user) || isOwnProfile || loading || (isOfficialAccount && following)) {
     return null;
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggleFollow}
-      disabled={saving}
-      className={`mt-4 w-full rounded-full py-3 text-sm font-bold transition-colors disabled:opacity-50 ${
-        following
-          ? "border border-border bg-surface text-gray-300"
-          : "bg-hot text-white"
-      }`}
-    >
-      {saving ? "..." : following ? "Following" : "Follow"}
-    </button>
+    <div className="absolute right-4 top-6 z-10">
+      <button
+        type="button"
+        onClick={toggleFollow}
+        disabled={saving}
+        className={`inline-flex shrink-0 items-center rounded-full border bg-surface px-2.5 py-0.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+          following
+            ? "border-border text-gray-300 hover:border-hot/40 hover:text-hot"
+            : "border-hot/40 text-hot hover:bg-hot/10"
+        }`}
+      >
+        {saving ? "..." : following ? "Following" : "Follow"}
+      </button>
+    </div>
   );
 }

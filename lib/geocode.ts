@@ -12,7 +12,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<GeoPlace
     url.searchParams.set("format", "json");
 
     const res = await fetch(url.toString(), {
-      headers: { "User-Agent": "PlateCheck/1.0 (food recommendations)" },
+      headers: { "User-Agent": "Munchly/1.0 (food recommendations)" },
       next: { revalidate: 3600 },
     });
 

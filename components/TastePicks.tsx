@@ -33,7 +33,7 @@ interface TastePicksCache {
 }
 
 function tastePicksCacheKey(userId: string) {
-  return `platecheck-taste-picks:v4:${userId}`;
+  return `munchly-taste-picks:v5:${userId}`;
 }
 
 function savedPickKey(restaurant: string, dish: string) {

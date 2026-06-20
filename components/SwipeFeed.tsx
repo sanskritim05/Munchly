@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowseFeed } from "@/components/BrowseFeed";
 import { FeedTabBar } from "@/components/FeedTabBar";
+import { PeopleSearchButton, PeopleSearchOverlay } from "@/components/PeopleSearchOverlay";
 import { RateFeed } from "@/components/RateFeed";
 import { useAuth } from "@/components/AuthProvider";
 import { track } from "@/lib/analytics";
@@ -20,6 +21,7 @@ export function SwipeFeed() {
   const { user, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<FeedTab>("explore");
   const [filter, setFilter] = useState<FeedFilter>("everyone");
+  const [searchOpen, setSearchOpen] = useState(false);
   const tracked = useRef(false);
   const registered = isRegisteredUser(user);
 
@@ -62,8 +64,14 @@ export function SwipeFeed() {
   return (
     <div className="app-container flex h-page w-full flex-col overflow-hidden">
       <div className="shrink-0 bg-[var(--bg)] px-feed py-2">
-        <FeedTabBar tab={tab} onChange={onTabChange} />
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <FeedTabBar tab={tab} onChange={onTabChange} />
+          </div>
+          <PeopleSearchButton onClick={() => setSearchOpen(true)} />
+        </div>
       </div>
+      <PeopleSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div
         className={`min-h-0 flex-1 ${
           tab === "explore" ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"

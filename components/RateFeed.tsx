@@ -10,7 +10,7 @@ import {
 } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
@@ -34,6 +34,7 @@ interface FeedPlate {
   username: string;
   display_name?: string | null;
   is_following?: boolean;
+  is_verified?: boolean;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -102,6 +103,7 @@ function SwipeCard({
         score={plate.score}
         username={plate.username}
         displayName={plate.display_name}
+        verified={plate.is_verified}
         title={plate.dish_name ?? "Plate"}
         subtitle={plate.restaurant_name}
         isFollowing={plate.is_following}
@@ -123,7 +125,6 @@ export function RateFeed({
   const registered = isRegisteredUser(user);
   const [plates, setPlates] = useState<FeedPlate[]>([]);
   const [followingCount, setFollowingCount] = useState(0);
-  const [followingHasPosts, setFollowingHasPosts] = useState(false);
   const [index, setIndex] = useState(0);
   const [ratedToday, setRatedToday] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -151,7 +152,6 @@ export function RateFeed({
     const data = await res.json();
     setPlates(data.plates ?? []);
     setFollowingCount(data.following_count ?? 0);
-    setFollowingHasPosts(Boolean(data.following_has_posts));
     setIndex(0);
     x.set(0);
     setLoading(false);
@@ -258,6 +258,17 @@ export function RateFeed({
     await loadFeed();
   }
 
+  const filterBar =
+    registered && onFilterChange ? (
+      <div className="relative z-30 shrink-0 bg-[var(--bg)] px-page pb-1 pt-2">
+        <FeedFilterToggle
+          filter={filter}
+          onChange={onFilterChange}
+          followingCount={followingCount}
+        />
+      </div>
+    ) : null;
+
   if (!authLoading && !registered) {
     return (
       <FeedSignInPrompt
@@ -267,158 +278,153 @@ export function RateFeed({
     );
   }
 
+  const streakBadge =
+    !loading && current ? (
+      <div className="pointer-events-none absolute right-4 top-2 z-40 shrink-0 rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:right-6 sm:text-sm">
+        <span className="inline-flex items-center gap-1.5">
+          <AppIcon kind="flame" size={16} />
+          <span>{ratedToday} today</span>
+          <span className="text-gray-400">·</span>
+          <span>{streak > 0 ? `Day ${streak}` : "No streak"}</span>
+        </span>
+      </div>
+    ) : null;
+
+  let body: ReactNode;
+
   if (loading) {
-    return (
+    body = (
       <div className="flex h-full items-center justify-center px-page">
         <p className={feedLoadingClass}>Loading plates to rate...</p>
       </div>
     );
-  }
-
-  if (!current) {
+  } else if (!current) {
     const caughtUp = plates.length > 0;
 
-    if (filter === "following" && !caughtUp) {
-      if (followingCount === 0 || !followingHasPosts) {
-        return <FollowingFeedEmptyState followingCount={followingCount} />;
-      }
+    if (filter === "following" && plates.length === 0) {
+      body = <FollowingFeedEmptyState followingCount={followingCount} />;
+    } else {
+      body = (
+        <FeedViewportEmpty
+          title={caughtUp ? "You've seen everything" : "No plates to rate yet"}
+          description={
+            caughtUp
+              ? filter === "following"
+                ? "Switch to All to rate more plates, or explore posts and leave comments."
+                : "Explore posts and leave comments, or check back later for new plates."
+              : "Explore what others posted or find people on Top to follow."
+          }
+        >
+          <div className="flex w-full flex-col items-center gap-3">
+            {!caughtUp ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onSwitchToExplore}
+                  className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+                >
+                  Explore posts
+                </button>
+                <Link
+                  href="/leaderboard"
+                  className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold"
+                >
+                  View Top
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onSwitchToExplore}
+                  className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
+                >
+                  Explore posts
+                </button>
+                <button
+                  type="button"
+                  onClick={refreshFeed}
+                  disabled={refreshing}
+                  className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
+                >
+                  {refreshing ? "Refreshing..." : "Refresh"}
+                </button>
+              </>
+            )}
+            <Link
+              href="/post"
+              className="text-sm font-medium text-gray-400 hover:text-hot"
+            >
+              Post your plate
+            </Link>
+          </div>
+        </FeedViewportEmpty>
+      );
     }
+  } else {
+    body = (
+      <div className="relative min-h-0 flex-1 touch-none px-feed">
+        <div className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)]">
+          {next ? (
+            <SwipeCard
+              key={next.id}
+              plate={next}
+              motionStyle={{
+                scale: nextScale,
+                y: nextY,
+                opacity: nextOpacity,
+                zIndex: 0,
+              }}
+            />
+          ) : null}
 
-    return (
-      <FeedViewportEmpty
-        title={caughtUp ? "You've seen everything" : "No plates to rate yet"}
-        description={
-          caughtUp
-            ? filter === "following"
-              ? "Switch to All to rate more plates, or explore posts and leave comments."
-              : "Explore posts and leave comments, or check back later for new plates."
-            : "Explore what others posted or find people on Top to follow."
-        }
-      >
-        <div className="flex w-full flex-col items-center gap-3">
-          {!caughtUp ? (
-            <>
-              <button
-                type="button"
-                onClick={onSwitchToExplore}
-                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
-              >
-                Explore posts
-              </button>
-              <Link
-                href="/leaderboard"
-                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold"
-              >
-                View Top
-              </Link>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onSwitchToExplore}
-                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full bg-hot px-6 py-3 text-sm font-bold"
-              >
-                Explore posts
-              </button>
-              <button
-                type="button"
-                onClick={refreshFeed}
-                disabled={refreshing}
-                className="inline-flex min-w-[10.5rem] items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-bold disabled:opacity-50"
-              >
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-            </>
-          )}
-          <Link
-            href="/post"
-            className="text-sm font-medium text-gray-400 hover:text-hot"
-          >
-            Post your plate
-          </Link>
+          <SwipeCard
+            key={current.id}
+            plate={current}
+            interactive
+            hotOpacity={hotOpacity}
+            notOpacity={notOpacity}
+            onDragEnd={onDragEnd}
+            motionStyle={{
+              x,
+              rotate,
+              zIndex: 10,
+              touchAction: "none",
+            }}
+          />
         </div>
-      </FeedViewportEmpty>
+
+        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            disabled={isLeaving}
+            onClick={() => void flyOff(0)}
+            className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-border bg-surface disabled:opacity-50`}
+            aria-label="Not"
+          >
+            <AppIcon kind="not" size={ICON_SIZE} />
+          </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            disabled={isLeaving}
+            onClick={() => void flyOff(1)}
+            className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-hot/50 bg-surface shadow-lg shadow-hot/20 disabled:opacity-50`}
+            aria-label="Hot"
+          >
+            <AppIcon kind="flame" size={ICON_SIZE} />
+          </motion.button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="relative mx-auto flex h-full w-full flex-col touch-none">
-      <div className="flex shrink-0 items-center justify-between px-feed pb-1 pt-1">
-        {onFilterChange ? (
-          <FeedFilterToggle
-            filter={filter}
-            onChange={onFilterChange}
-            followingCount={followingCount}
-            hint={filter === "everyone" ? "Friends first" : undefined}
-          />
-        ) : (
-          <span />
-        )}
-        <div className="rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:text-sm">
-          <span className="inline-flex items-center gap-1.5">
-            <AppIcon kind="flame" size={16} />
-            <span>{ratedToday} today</span>
-            <span className="text-gray-400">·</span>
-            <span>{streak > 0 ? `Day ${streak}` : "No streak"}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="relative min-h-0 flex-1 px-feed">
-        <div className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)]">
-        {next ? (
-          <SwipeCard
-            key={next.id}
-            plate={next}
-            motionStyle={{
-              scale: nextScale,
-              y: nextY,
-              opacity: nextOpacity,
-              zIndex: 0,
-            }}
-          />
-        ) : null}
-
-        <SwipeCard
-          key={current.id}
-          plate={current}
-          interactive
-          hotOpacity={hotOpacity}
-          notOpacity={notOpacity}
-          onDragEnd={onDragEnd}
-          motionStyle={{
-            x,
-            rotate,
-            zIndex: 10,
-            touchAction: "none",
-          }}
-        />
-        </div>
-
-        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          disabled={isLeaving}
-          onClick={() => void flyOff(0)}
-          className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-border bg-surface disabled:opacity-50`}
-          aria-label="Not"
-        >
-          <AppIcon kind="not" size={ICON_SIZE} />
-        </motion.button>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.9 }}
-          disabled={isLeaving}
-          onClick={() => void flyOff(1)}
-          className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-hot/50 bg-surface shadow-lg shadow-hot/20 disabled:opacity-50`}
-          aria-label="Hot"
-        >
-          <AppIcon kind="flame" size={ICON_SIZE} />
-        </motion.button>
-        </div>
-      </div>
+    <div className="relative mx-auto flex h-full w-full flex-col">
+      {filterBar}
+      {streakBadge}
+      <div className="min-h-0 flex-1">{body}</div>
     </div>
   );
 }

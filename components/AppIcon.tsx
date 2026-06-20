@@ -5,6 +5,7 @@ const ICONS = {
   not: { src: "/icons/not.png", alt: "Not" },
   post: { src: "/icons/post.png", alt: "Post" },
   picks: { src: "/icons/picks.png?v=2", alt: "Picks" },
+  search: { src: "/icons/search.png?v=1", alt: "Search" },
   trophy: { src: "/icons/trophy.png", alt: "Trophy" },
   profile: { src: "/icons/profile.png", alt: "Profile" },
 } as const;

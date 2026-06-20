@@ -1,4 +1,4 @@
-# PlateCheck
+# Munchly
 
 Hot or Not for food photos. Post your meal, get rated, share your score card.
 

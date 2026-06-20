@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
+import {
+  ensureFollowsOfficialAccount,
+  getFollowerCount,
+  getOfficialProfileId,
+  syncFollowerCount,
+} from "@/lib/follows";
+import { isOfficialAccountUsername } from "@/lib/profile-verified";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-async function getFollowerCount(supabase: ReturnType<typeof createAdminClient>, userId: string) {
-  const { count, error } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", userId);
-
-  if (error) return 0;
-  return count ?? 0;
-}
-
-async function syncFollowerCount(supabase: ReturnType<typeof createAdminClient>, userId: string) {
-  const followerCount = await getFollowerCount(supabase, userId);
-  await supabase.from("profiles").update({ follower_count: followerCount }).eq("id", userId);
-  return followerCount;
-}
 
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
@@ -119,6 +110,21 @@ export async function DELETE(request: Request) {
   }
 
   const supabase = createAdminClient();
+  const officialId = await getOfficialProfileId(supabase);
+
+  if (officialId && userId === officialId) {
+    return NextResponse.json({ error: "Cannot unfollow the official account" }, { status: 400 });
+  }
+
+  const { data: target } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (target && isOfficialAccountUsername(target.username)) {
+    return NextResponse.json({ error: "Cannot unfollow the official account" }, { status: 400 });
+  }
 
   const { error } = await supabase
     .from("follows")

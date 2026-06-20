@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { absoluteAppPath, sharePlateUrl } from "@/lib/app-url";
 import { shareScoreColor } from "@/lib/share-card";
 import { profilePrimaryLabel } from "@/lib/profile-display";
+import { isVerifiedProfile } from "@/lib/profile-verified";
 import { getPlateTier } from "@/lib/tiers";
 
 async function getPlate(id: string) {
@@ -38,7 +39,7 @@ export async function generateMetadata({
   const shareUrl = sharePlateUrl(params.id);
 
   return {
-    title: `${ownerLabel}'s ${dishName} scored ${score} | PlateCheck`,
+    title: `${ownerLabel}'s ${dishName} scored ${score} | Munchly`,
     description: "Hot or not for food photos. Rate this plate or post your own.",
     openGraph: {
       title: `${ownerLabel}'s plate scored ${score}/10`,
@@ -65,7 +66,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           <AppLogo size={120} className="mx-auto" />
           <p className="mt-6 text-lg text-gray-400">This plate is gone.</p>
           <Link href="/get-started" className="mt-4 inline-block text-hot">
-            Join PlateCheck →
+            Join Munchly →
           </Link>
         </div>
       </div>
@@ -108,6 +109,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           dishName={plate.dish_name ?? "Mystery Dish"}
           username={username}
           displayName={displayName}
+          verified={isVerifiedProfile({ username, total_plates: profile?.total_plates })}
           tierLabel={tierLabel}
           hotCount={plate.hot_count ?? 0}
           notCount={plate.not_count ?? 0}

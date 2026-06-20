@@ -161,7 +161,7 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  console.log("Resetting PlateCheck database...\n");
+  console.log("Resetting Munchly database...\n");
 
   const steps = [
     ["comment_likes", () => deleteAllCommentLikes(supabase)],
