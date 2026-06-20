@@ -1,6 +1,6 @@
 import { isOfficialAccountUsername } from "@/lib/profile-verified";
 
-export const IDENTITY_CHANGE_COOLDOWN_DAYS = 30;
+export const IDENTITY_CHANGE_COOLDOWN_DAYS = 15;
 
 export function getNextIdentityChangeDate(changedAt: string | null) {
   if (!changedAt) return null;
