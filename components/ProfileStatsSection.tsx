@@ -6,6 +6,7 @@ import { ProfileFollowButton } from "@/components/ProfileFollowButton";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { isRegisteredUser } from "@/lib/auth-user";
+import { isOfficialAccountUsername } from "@/lib/profile-verified";
 
 export function ProfileStatsSection({
   profileUserId,
@@ -22,6 +23,7 @@ export function ProfileStatsSection({
 }) {
   const { user, getAccessToken } = useAuth();
   const isOwner = isRegisteredUser(user) && user.id === profileUserId;
+  const isOfficialOwner = isOwner && isOfficialAccountUsername(username);
   const [followingCount, setFollowingCount] = useState<number | null>(null);
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
 
@@ -81,10 +83,17 @@ export function ProfileStatsSection({
             <p className="text-xs text-gray-400">Following</p>
           </Link>
         ) : null}
-        <div>
-          <p className="text-2xl font-bold">{followerCount}</p>
-          <p className="text-xs text-gray-400">Followers</p>
-        </div>
+        {isOfficialOwner ? (
+          <Link href="/profile/followers" className="transition-colors hover:text-hot">
+            <p className="text-2xl font-bold">{followerCount}</p>
+            <p className="text-xs text-gray-400">Followers</p>
+          </Link>
+        ) : (
+          <div>
+            <p className="text-2xl font-bold">{followerCount}</p>
+            <p className="text-xs text-gray-400">Followers</p>
+          </div>
+        )}
       </div>
     </>
   );
