@@ -15,8 +15,10 @@
   --purple: #6366f1;
   --app-height: 100dvh;
   --nav-height: 3.75rem;
-  --feed-tab-height: 3.5rem;
+  --feed-tab-height: 5.75rem;
   --feed-actions-height: 4.5rem;
+  --swipe-header-height: var(--feed-tab-height);
+  --rate-viewport-height: calc(var(--page-height) - var(--swipe-header-height));
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -195,6 +197,14 @@ body::-webkit-scrollbar {
 
   .h-feed {
     height: var(--feed-height);
+  }
+
+  .min-h-rate-viewport {
+    min-height: var(--rate-viewport-height);
+  }
+
+  .h-rate-viewport {
+    height: var(--rate-viewport-height);
   }
 
   .min-h-page {

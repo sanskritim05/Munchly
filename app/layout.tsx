@@ -48,7 +48,7 @@ export default function RootLayout({
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${syne.variable} flex min-h-app flex-col overflow-x-hidden bg-[var(--bg)] font-sans text-[var(--foreground)]`}
+        className={`${spaceGrotesk.variable} ${syne.variable} flex h-app min-h-app flex-col overflow-x-hidden bg-[var(--bg)] font-sans text-[var(--foreground)]`}
       >
         <ThemeProvider>
           <AuthProvider>

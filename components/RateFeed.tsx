@@ -347,7 +347,7 @@ export function RateFeed({
     }
   } else {
     body = (
-      <div className="relative flex min-h-0 flex-1 basis-0 touch-none flex-col px-feed">
+      <div className="relative flex min-h-0 min-h-rate-viewport flex-1 basis-0 touch-none flex-col px-feed">
         <div className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)]">
           {next ? (
             <SwipeCard
@@ -407,7 +407,7 @@ export function RateFeed({
   }
 
   return (
-    <div className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+    <div className="relative mx-auto flex min-h-0 w-full min-h-rate-viewport flex-1 flex-col">
       {streakBadge}
       <div className="flex min-h-0 flex-1 flex-col">{body}</div>
     </div>
