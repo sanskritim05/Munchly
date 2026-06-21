@@ -112,7 +112,7 @@ export function BrowseFeed({
     if (filter === "following" && registered) {
       return (
         <div className="flex min-h-0 flex-1 flex-col">
-          <FollowingFeedEmptyState followingCount={followingCount} />
+          <FollowingFeedEmptyState />
         </div>
       );
     }

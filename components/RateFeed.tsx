@@ -125,8 +125,6 @@ export function RateFeed({
   const { user, getAccessToken, loading: authLoading } = useAuth();
   const registered = isRegisteredUser(user);
   const [plates, setPlates] = useState<FeedPlate[]>([]);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [followingHasPosts, setFollowingHasPosts] = useState(false);
   const [index, setIndex] = useState(0);
   const [ratedToday, setRatedToday] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -154,9 +152,7 @@ export function RateFeed({
     const data = await res.json();
     setPlates(data.plates ?? []);
     const count = data.following_count ?? 0;
-    setFollowingCount(count);
     onFollowingCountChange?.(count);
-    setFollowingHasPosts(Boolean(data.following_has_posts));
     setIndex(0);
     x.set(0);
     setLoading(false);
@@ -298,10 +294,7 @@ export function RateFeed({
     const caughtUp = plates.length > 0;
 
     if (filter === "following") {
-      const ratedAllFromFollowing =
-        caughtUp || (plates.length === 0 && followingHasPosts && followingCount > 0);
-
-      body = <FollowingFeedEmptyState ratedAll={ratedAllFromFollowing} />;
+      body = <FollowingFeedEmptyState />;
     } else {
       body = (
         <FeedViewportEmpty

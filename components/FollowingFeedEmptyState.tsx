@@ -8,13 +8,7 @@ import { profileUrl } from "@/lib/app-url";
 import { isRegisteredUser } from "@/lib/auth-user";
 import { createBrowserClient } from "@/lib/supabase/client";
 
-export function FollowingFeedEmptyState({
-  ratedAll = false,
-}: {
-  followingCount?: number;
-  followingHasPosts?: boolean;
-  ratedAll?: boolean;
-}) {
+export function FollowingFeedEmptyState() {
   const { user } = useAuth();
   const [username, setUsername] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -53,15 +47,6 @@ export function FollowingFeedEmptyState({
     } catch {
       // ignore
     }
-  }
-
-  if (ratedAll) {
-    return (
-      <FeedViewportEmpty
-        title="You've rated everything from people you follow"
-        description="Switch to All for more plates, or check back when they post something new."
-      />
-    );
   }
 
   return (
