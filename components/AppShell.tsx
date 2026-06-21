@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+      <main className="flex h-full min-h-0 flex-1 flex-col">{children}</main>
       {showNav ? <NavBar /> : null}
     </>
   );
