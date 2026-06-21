@@ -100,8 +100,8 @@ export function BrowseFeed({
 
   if (loading) {
     return (
-      <div className="flex h-full flex-col">
-        <div className="flex flex-1 items-center justify-center px-page">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 items-center justify-center px-page">
           <p className={feedLoadingClass}>Loading posts...</p>
         </div>
       </div>
@@ -111,14 +111,14 @@ export function BrowseFeed({
   if (plates.length === 0) {
     if (filter === "following" && registered) {
       return (
-        <div className="flex h-full flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <FollowingFeedEmptyState followingCount={followingCount} />
         </div>
       );
     }
 
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <FeedViewportEmpty
           title="no posts yet"
           description="When others post plates, you can explore them here."

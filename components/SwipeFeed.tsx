@@ -64,7 +64,7 @@ export function SwipeFeed() {
   }
 
   return (
-    <div className="app-container flex h-page w-full flex-col overflow-hidden">
+    <div className="app-container flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0 bg-[var(--bg)] px-feed py-2">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ export function SwipeFeed() {
       </div>
       <PeopleSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div
-        className={`min-h-0 flex-1 ${
+        className={`flex min-h-0 flex-1 flex-col ${
           tab === "explore" ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"
         }`}
       >
