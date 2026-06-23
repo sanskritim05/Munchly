@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth-server";
-import {
-  dailyPlateLimitMessage,
-  getLocalDayStartIso,
-  isAtDailyPlateLimit,
-  isValidTimezone,
-} from "@/lib/plate-limits";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -32,30 +26,6 @@ export async function POST(request: Request) {
   }
 
   const supabase = createAdminClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  const rawTimezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
-  const timeZone = isValidTimezone(rawTimezone) ? rawTimezone : "UTC";
-  const dayStart = getLocalDayStartIso(timeZone);
-
-  const { count: postsTodayCount, error: countError } = await supabase
-    .from("plates")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .gte("created_at", dayStart);
-
-  if (countError) {
-    return NextResponse.json({ error: countError.message }, { status: 500 });
-  }
-
-  if (isAtDailyPlateLimit(postsTodayCount ?? 0, profile?.username)) {
-    return NextResponse.json({ error: dailyPlateLimitMessage() }, { status: 403 });
-  }
 
   const { data: plate, error } = await supabase
     .from("plates")
