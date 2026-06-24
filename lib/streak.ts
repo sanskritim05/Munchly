@@ -1,5 +1,3 @@
-const STREAK_KEY = "rmp_streak";
-const STREAK_DATE_KEY = "rmp_streak_date";
 const DAILY_GOAL = 5;
 
 interface StreakData {
@@ -8,24 +6,16 @@ interface StreakData {
   ratedToday: number;
 }
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function storageKeys(userId: string) {
+  return {
+    streak: `rmp_streak:${userId}`,
+    date: `rmp_streak_date:${userId}`,
+    ratedToday: `rmp_rated_today:${userId}`,
+  };
 }
 
-export function getStreak(): StreakData {
-  if (typeof window === "undefined") {
-    return { count: 0, date: today(), ratedToday: 0 };
-  }
-
-  const date = localStorage.getItem(STREAK_DATE_KEY) ?? today();
-  const ratedToday = Number(localStorage.getItem("rmp_rated_today") ?? 0);
-  const count = Number(localStorage.getItem(STREAK_KEY) ?? 0);
-
-  if (date !== today()) {
-    return { count: date === yesterday() && ratedToday >= DAILY_GOAL ? count : 0, date: today(), ratedToday: 0 };
-  }
-
-  return { count, date, ratedToday };
+function today() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function yesterday() {
@@ -34,8 +24,37 @@ function yesterday() {
   return d.toISOString().slice(0, 10);
 }
 
-export function recordRating() {
-  const current = getStreak();
+export function getStreak(userId: string): StreakData {
+  if (typeof window === "undefined" || !userId) {
+    return { count: 0, date: today(), ratedToday: 0 };
+  }
+
+  const keys = storageKeys(userId);
+  const date = localStorage.getItem(keys.date) ?? today();
+  const ratedToday = Number(localStorage.getItem(keys.ratedToday) ?? 0);
+  const count = Number(localStorage.getItem(keys.streak) ?? 0);
+
+  if (date !== today()) {
+    return {
+      count: date === yesterday() && ratedToday >= DAILY_GOAL ? count : 0,
+      date: today(),
+      ratedToday: 0,
+    };
+  }
+
+  return { count, date, ratedToday };
+}
+
+export function syncRatedToday(userId: string, ratedToday: number) {
+  if (typeof window === "undefined" || !userId) return;
+
+  const keys = storageKeys(userId);
+  localStorage.setItem(keys.date, today());
+  localStorage.setItem(keys.ratedToday, String(ratedToday));
+}
+
+export function recordRating(userId: string) {
+  const current = getStreak(userId);
   const ratedToday = current.date === today() ? current.ratedToday + 1 : 1;
   let count = current.count;
 
@@ -45,9 +64,12 @@ export function recordRating() {
     count = Math.max(count, 1);
   }
 
-  localStorage.setItem(STREAK_KEY, String(count));
-  localStorage.setItem(STREAK_DATE_KEY, today());
-  localStorage.setItem("rmp_rated_today", String(ratedToday));
+  if (typeof window !== "undefined" && userId) {
+    const keys = storageKeys(userId);
+    localStorage.setItem(keys.streak, String(count));
+    localStorage.setItem(keys.date, today());
+    localStorage.setItem(keys.ratedToday, String(ratedToday));
+  }
 
   return { count, ratedToday };
 }

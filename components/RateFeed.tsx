@@ -14,7 +14,8 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
-import { getStreak, recordRating } from "@/lib/streak";
+import { getStreak, recordRating, syncRatedToday } from "@/lib/streak";
+import { getUserTimezone } from "@/lib/local-day";
 import { track } from "@/lib/analytics";
 import { feedLoadingClass } from "@/lib/feed-ui";
 import { FeedSignInPrompt } from "@/components/FeedSignInPrompt";
@@ -124,6 +125,7 @@ export function RateFeed({
 }) {
   const { user, getAccessToken, loading: authLoading } = useAuth();
   const registered = isRegisteredUser(user);
+  const userId = registered ? user.id : null;
   const [plates, setPlates] = useState<FeedPlate[]>([]);
   const [index, setIndex] = useState(0);
   const [ratedToday, setRatedToday] = useState(0);
@@ -144,27 +146,34 @@ export function RateFeed({
 
   const loadFeed = useCallback(async (tokenOverride?: string) => {
     const token = tokenOverride ?? getAccessToken();
-    if (!token) return false;
+    if (!token || !userId) return false;
 
-    const res = await fetch(`/api/feed?filter=${filter}`, {
+    const timezone = encodeURIComponent(getUserTimezone());
+    const res = await fetch(`/api/feed?filter=${filter}&timezone=${timezone}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     setPlates(data.plates ?? []);
     const count = data.following_count ?? 0;
     onFollowingCountChange?.(count);
+    if (typeof data.rated_today_count === "number") {
+      syncRatedToday(userId, data.rated_today_count);
+      setRatedToday(data.rated_today_count);
+    }
     setIndex(0);
     x.set(0);
     setLoading(false);
     setRefreshing(false);
     return true;
-  }, [filter, getAccessToken, onFollowingCountChange, x]);
+  }, [filter, getAccessToken, onFollowingCountChange, userId, x]);
 
   useEffect(() => {
     async function init() {
       if (authLoading) return;
 
-      if (!registered) {
+      if (!registered || !userId) {
+        setStreak(0);
+        setRatedToday(0);
         setLoading(false);
         return;
       }
@@ -175,14 +184,14 @@ export function RateFeed({
         return;
       }
 
-      const s = getStreak();
+      const s = getStreak(userId);
       setStreak(s.count);
       setRatedToday(s.ratedToday);
       setLoading(true);
       await loadFeed(token);
     }
     init();
-  }, [authLoading, registered, getAccessToken, loadFeed, filter]);
+  }, [authLoading, registered, userId, getAccessToken, loadFeed, filter]);
 
   const current = plates[index];
   const next = plates[index + 1];
@@ -200,8 +209,10 @@ export function RateFeed({
       body: JSON.stringify({ plate_id: plateId, rating }),
     });
 
-    const previousStreak = getStreak().count;
-    const s = recordRating();
+    if (!userId) return;
+
+    const previousStreak = getStreak(userId).count;
+    const s = recordRating(userId);
     setStreak(s.count);
     setRatedToday(s.ratedToday);
 
@@ -271,13 +282,13 @@ export function RateFeed({
   }
 
   const streakBadge =
-    !loading && current ? (
+    registered && !authLoading && !loading ? (
       <div className="pointer-events-none absolute right-4 top-2 z-40 shrink-0 rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:right-6 sm:text-sm">
         <span className="inline-flex items-center gap-1.5">
           <AppIcon kind="flame" size={16} />
-          <span>{ratedToday} today</span>
+          <span>{ratedToday} rated today</span>
           <span className="text-gray-400">·</span>
-          <span>{streak > 0 ? `Day ${streak}` : "No streak"}</span>
+          <span>{streak > 0 ? `Day ${streak} streak` : "No streak"}</span>
         </span>
       </div>
     ) : null;

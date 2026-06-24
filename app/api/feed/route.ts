@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserFromRequest, isRegisteredAuthUser } from "@/lib/auth-server";
+import { getLocalDayStartIso, isValidTimezone } from "@/lib/local-day";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isVerifiedProfile } from "@/lib/profile-verified";
 
@@ -68,6 +69,25 @@ function orderEveryoneFeed(plates: RawPlate[], followingSet: Set<string>, ratedS
     .map((p) => mapPlate(p, followingSet));
 }
 
+async function getRatedTodayCount(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  timeZone: string
+) {
+  const dayStart = getLocalDayStartIso(timeZone);
+  const { count, error } = await supabase
+    .from("ratings")
+    .select("id", { count: "exact", head: true })
+    .eq("rater_id", userId)
+    .gte("created_at", dayStart);
+
+  if (error) {
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export async function GET(request: Request) {
   const user = await getUserFromRequest(request);
   if (!isRegisteredAuthUser(user)) {
@@ -76,8 +96,11 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const filter = searchParams.get("filter") === "following" ? "following" : "everyone";
+  const rawTimezone = searchParams.get("timezone")?.trim() ?? "";
+  const timeZone = isValidTimezone(rawTimezone) ? rawTimezone : "UTC";
 
   const supabase = createAdminClient();
+  const ratedTodayCount = await getRatedTodayCount(supabase, user.id, timeZone);
 
   const { data: rated } = await supabase
     .from("ratings")
@@ -94,6 +117,7 @@ export async function GET(request: Request) {
         plates: [],
         following_count: 0,
         following_has_posts: false,
+        rated_today_count: ratedTodayCount,
       });
     }
 
@@ -130,6 +154,7 @@ export async function GET(request: Request) {
       plates,
       following_count: followingIds.length,
       following_has_posts: followingHasPosts,
+      rated_today_count: ratedTodayCount,
     });
   }
 
@@ -154,5 +179,6 @@ export async function GET(request: Request) {
     plates,
     following_count: followingIds.length,
     following_has_posts: followingIds.length > 0,
+    rated_today_count: ratedTodayCount,
   });
 }
