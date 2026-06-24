@@ -6,10 +6,12 @@ import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedTabBar } from "@/components/FeedTabBar";
 import { PeopleSearchButton, PeopleSearchOverlay } from "@/components/PeopleSearchOverlay";
 import { RateFeed } from "@/components/RateFeed";
+import { RateIntroOverlay } from "@/components/RateIntroOverlay";
 import { RateStreakBadge } from "@/components/RateStreakBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { track } from "@/lib/analytics";
 import { isRegisteredUser } from "@/lib/auth-user";
+import { hasSeenRateIntro, markRateIntroSeen } from "@/lib/rate-intro-prompt";
 import { getStreak } from "@/lib/streak";
 import {
   FeedFilter,
@@ -26,6 +28,7 @@ export function SwipeFeed() {
   const [filter, setFilter] = useState<FeedFilter>("everyone");
   const [followingCount, setFollowingCount] = useState(0);
   const [rateStreak, setRateStreak] = useState({ ratedToday: 0, streak: 0 });
+  const [showRateIntro, setShowRateIntro] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const tracked = useRef(false);
   const registered = isRegisteredUser(user);
@@ -58,6 +61,13 @@ export function SwipeFeed() {
   }, [userId, tab]);
 
   useEffect(() => {
+    if (authLoading || !registered || !userId || tab !== "rate") return;
+    if (!hasSeenRateIntro(userId)) {
+      setShowRateIntro(true);
+    }
+  }, [authLoading, registered, userId, tab]);
+
+  useEffect(() => {
     if (tracked.current) return;
     tracked.current = true;
     void track("swipe_session_started");
@@ -75,6 +85,14 @@ export function SwipeFeed() {
 
   function switchToExplore() {
     onTabChange("explore");
+  }
+
+  function dismissRateIntro() {
+    if (userId) {
+      markRateIntroSeen(userId);
+      void track("rate_intro_dismissed");
+    }
+    setShowRateIntro(false);
   }
 
   return (
@@ -122,6 +140,7 @@ export function SwipeFeed() {
           />
         )}
       </div>
+      <RateIntroOverlay open={showRateIntro && tab === "rate"} onClose={dismissRateIntro} />
     </div>
   );
 }
