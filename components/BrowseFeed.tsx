@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
-import { FeedTabColumn } from "@/components/FeedTabColumn";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { PlateView } from "@/components/PlateView";
@@ -80,26 +79,22 @@ export function BrowseFeed({
 
   const browseMeta =
     registered && !loading && plates.length > 0 ? (
-      <div className="mb-4 px-page">
-        <FeedTabColumn className="items-end">
-          <div className="flex items-end justify-between gap-3">
-            <p className={feedMetaClass}>
-              {plates.length} post{plates.length === 1 ? "" : "s"}
-              {filter === "following" ? " from people you follow" : ""}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setRefreshing(true);
-                void loadBrowse();
-              }}
-              disabled={refreshing}
-              className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-        </FeedTabColumn>
+      <div className="mb-4 flex items-end justify-between gap-3 px-page">
+        <p className={feedMetaClass}>
+          {plates.length} post{plates.length === 1 ? "" : "s"}
+          {filter === "following" ? " from people you follow" : ""}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setRefreshing(true);
+            void loadBrowse();
+          }}
+          disabled={refreshing}
+          className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
+        >
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </div>
     ) : null;
 
@@ -175,9 +170,7 @@ export function BrowseFeed({
 
       {browseMeta}
 
-      <div className="px-page">
-        <FeedTabColumn>
-          <ul className="space-y-4">
+      <ul className="space-y-4 px-page">
         {plates.map((plate) => {
           const total = plate.hot_count + plate.not_count;
           const hotPct = total > 0 ? (plate.hot_count / total) * 100 : 50;
@@ -235,9 +228,7 @@ export function BrowseFeed({
             </li>
           );
         })}
-          </ul>
-        </FeedTabColumn>
-      </div>
+      </ul>
     </div>
   );
 }

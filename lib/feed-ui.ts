@@ -6,3 +6,4 @@ export const feedMetaClass = "text-sm text-gray-400";
 export const feedCardShellClass =
   "overflow-hidden rounded-2xl border border-border bg-surface";
 export const feedCardMediaClass = "relative aspect-[4/3] w-full";
+export const feedRateCardMediaClass = "relative h-full min-h-0 w-full";

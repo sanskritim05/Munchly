@@ -104,8 +104,8 @@ export function SwipeFeed() {
       </div>
       <PeopleSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <div
-        className={`min-h-0 ${
-          tab === "explore" ? "overflow-x-hidden overflow-y-auto" : "h-full overflow-hidden"
+        className={`min-h-0 h-full ${
+          tab === "explore" ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"
         }`}
       >
         {tab === "explore" ? (
