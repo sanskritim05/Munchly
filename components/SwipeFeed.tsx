@@ -79,7 +79,7 @@ export function SwipeFeed() {
 
   return (
     <div className="app-container grid h-page w-full grid-rows-[auto_1fr] overflow-hidden">
-      <div className="shrink-0 bg-[var(--bg)] px-feed py-2">
+      <div className="shrink-0 bg-[var(--bg)] px-page py-2">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <FeedTabBar tab={tab} onChange={onTabChange} />
@@ -87,7 +87,7 @@ export function SwipeFeed() {
           <PeopleSearchButton onClick={() => setSearchOpen(true)} />
         </div>
         {registered ? (
-          <div className="mt-2 flex items-start justify-between gap-3 px-page">
+          <div className="mt-2 flex items-center justify-between gap-3">
             <FeedFilterToggle
               filter={filter}
               onChange={onFilterChange}

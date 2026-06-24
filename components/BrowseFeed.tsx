@@ -6,12 +6,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { AppIcon } from "@/components/AppIcon";
 import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
+import { FeedTabColumn } from "@/components/FeedTabColumn";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
 import { PlateView } from "@/components/PlateView";
 import { isRegisteredUser } from "@/lib/auth-user";
 import type { FeedFilter } from "@/lib/feed-scope";
-import { feedLoadingClass, feedMetaClass } from "@/lib/feed-ui";
+import { feedLoadingClass, feedMetaClass, feedCardMediaClass, feedCardShellClass } from "@/lib/feed-ui";
 
 interface BrowsePlate {
   id: string;
@@ -79,22 +80,26 @@ export function BrowseFeed({
 
   const browseMeta =
     registered && !loading && plates.length > 0 ? (
-      <div className="mb-4 flex items-end justify-between gap-3 px-page">
-        <p className={`${feedMetaClass}`}>
-          {plates.length} post{plates.length === 1 ? "" : "s"}
-          {filter === "following" ? " from people you follow" : ""}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setRefreshing(true);
-            void loadBrowse();
-          }}
-          disabled={refreshing}
-          className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
-        >
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </button>
+      <div className="mb-4 px-page">
+        <FeedTabColumn className="items-end">
+          <div className="flex items-end justify-between gap-3">
+            <p className={feedMetaClass}>
+              {plates.length} post{plates.length === 1 ? "" : "s"}
+              {filter === "following" ? " from people you follow" : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setRefreshing(true);
+                void loadBrowse();
+              }}
+              disabled={refreshing}
+              className={`${feedMetaClass} shrink-0 font-medium text-hot disabled:opacity-50`}
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+        </FeedTabColumn>
       </div>
     ) : null;
 
@@ -157,9 +162,9 @@ export function BrowseFeed({
   }
 
   return (
-    <div className="app-container w-full pb-6">
+    <div className="w-full pb-6">
       {!registered ? (
-        <p className="mb-4 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400 mx-page mt-2">
+        <p className="mx-page mb-4 mt-2 rounded-xl border border-border bg-black/30 px-3 py-2 text-xs text-gray-400">
           Exploring only.{" "}
           <Link href="/get-started?next=/swipe" className="font-semibold text-hot hover:underline">
             Create an account
@@ -170,7 +175,9 @@ export function BrowseFeed({
 
       {browseMeta}
 
-      <ul className="space-y-4 px-page">
+      <div className="px-page">
+        <FeedTabColumn>
+          <ul className="space-y-4">
         {plates.map((plate) => {
           const total = plate.hot_count + plate.not_count;
           const hotPct = total > 0 ? (plate.hot_count / total) * 100 : 50;
@@ -180,9 +187,9 @@ export function BrowseFeed({
               <button
                 type="button"
                 onClick={() => setSelectedId(plate.id)}
-                className="w-full overflow-hidden rounded-2xl border border-border bg-surface text-left transition-colors hover:border-hot/40"
+                className={`w-full text-left transition-colors hover:border-hot/40 ${feedCardShellClass}`}
               >
-                <div className="relative aspect-[4/3] w-full">
+                <div className={feedCardMediaClass}>
                   <Image
                     src={plate.image_url}
                     alt={plate.dish_name ?? "Plate"}
@@ -228,7 +235,9 @@ export function BrowseFeed({
             </li>
           );
         })}
-      </ul>
+          </ul>
+        </FeedTabColumn>
+      </div>
     </div>
   );
 }

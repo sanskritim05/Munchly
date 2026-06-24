@@ -17,10 +17,11 @@ import { FeedPlateOverlay } from "@/components/FeedPlateOverlay";
 import { getStreak, recordRating, syncRatedToday } from "@/lib/streak";
 import { getUserTimezone } from "@/lib/local-day";
 import { track } from "@/lib/analytics";
-import { feedLoadingClass } from "@/lib/feed-ui";
+import { feedLoadingClass, feedCardMediaClass, feedCardShellClass } from "@/lib/feed-ui";
 import { FeedSignInPrompt } from "@/components/FeedSignInPrompt";
 import { FeedViewportEmpty } from "@/components/FeedViewportEmpty";
 import { FollowingFeedEmptyState } from "@/components/FollowingFeedEmptyState";
+import { FeedTabColumn } from "@/components/FeedTabColumn";
 import { isRegisteredUser } from "@/lib/auth-user";
 import type { FeedFilter } from "@/lib/feed-scope";
 
@@ -71,7 +72,7 @@ function SwipeCard({
       dragSnapToOrigin={false}
       onDragEnd={interactive ? onDragEnd : undefined}
       style={motionStyle}
-      className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)] touch-none select-none overflow-hidden rounded-2xl bg-surface shadow-2xl will-change-transform"
+      className="absolute inset-0 touch-none select-none overflow-hidden will-change-transform"
     >
       <Image
         src={plate.image_url}
@@ -345,61 +346,67 @@ export function RateFeed({
     }
   } else {
     body = (
-      <div className="relative h-full touch-none px-feed">
-        <div className="absolute inset-x-0 top-0 bottom-[var(--feed-actions-height)]">
-          {next ? (
-            <SwipeCard
-              key={next.id}
-              plate={next}
-              showFollowingBadge={filter !== "following"}
-              motionStyle={{
-                scale: nextScale,
-                y: nextY,
-                opacity: nextOpacity,
-                zIndex: 0,
-              }}
-            />
-          ) : null}
+      <div className="flex h-full min-h-0 touch-none px-page">
+        <FeedTabColumn className="h-full">
+          <div className="flex h-full min-h-0 flex-col">
+            <div className={`relative w-full shrink-0 ${feedCardShellClass}`}>
+              <div className={`${feedCardMediaClass}`}>
+                {next ? (
+                  <SwipeCard
+                    key={next.id}
+                    plate={next}
+                    showFollowingBadge={filter !== "following"}
+                    motionStyle={{
+                      scale: nextScale,
+                      y: nextY,
+                      opacity: nextOpacity,
+                      zIndex: 0,
+                    }}
+                  />
+                ) : null}
 
-          <SwipeCard
-            key={current.id}
-            plate={current}
-            interactive
-            showFollowingBadge={filter !== "following"}
-            hotOpacity={hotOpacity}
-            notOpacity={notOpacity}
-            onDragEnd={onDragEnd}
-            motionStyle={{
-              x,
-              rotate,
-              zIndex: 10,
-              touchAction: "none",
-            }}
-          />
-        </div>
+                <SwipeCard
+                  key={current.id}
+                  plate={current}
+                  interactive
+                  showFollowingBadge={filter !== "following"}
+                  hotOpacity={hotOpacity}
+                  notOpacity={notOpacity}
+                  onDragEnd={onDragEnd}
+                  motionStyle={{
+                    x,
+                    rotate,
+                    zIndex: 10,
+                    touchAction: "none",
+                  }}
+                />
+              </div>
+            </div>
 
-        <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-6 px-page sm:gap-8">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            disabled={isLeaving}
-            onClick={() => void flyOff(0)}
-            className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-border bg-surface disabled:opacity-50`}
-            aria-label="Not"
-          >
-            <AppIcon kind="not" size={ICON_SIZE} />
-          </motion.button>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            disabled={isLeaving}
-            onClick={() => void flyOff(1)}
-            className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-hot/50 bg-surface shadow-lg shadow-hot/20 disabled:opacity-50`}
-            aria-label="Hot"
-          >
-            <AppIcon kind="flame" size={ICON_SIZE} />
-          </motion.button>
-        </div>
+            <div className="flex min-h-[var(--feed-actions-height)] flex-1 items-center justify-center gap-6 sm:gap-8">
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                disabled={isLeaving}
+                onClick={() => void flyOff(0)}
+                className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-border bg-surface disabled:opacity-50`}
+                aria-label="Not"
+              >
+                <AppIcon kind="not" size={ICON_SIZE} />
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                disabled={isLeaving}
+                onClick={() => void flyOff(1)}
+                className={`${BUTTON_SIZE} flex items-center justify-center rounded-full border border-hot/50 bg-surface shadow-lg shadow-hot/20 disabled:opacity-50`}
+                aria-label="Hot"
+              >
+                <AppIcon kind="flame" size={ICON_SIZE} />
+              </motion.button>
+            </div>
+          </div>
+        </FeedTabColumn>
       </div>
     );
   }
