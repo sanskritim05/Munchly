@@ -67,7 +67,7 @@ export interface LandingCarouselRowConfig {
 }
 
 const ROW_GAPS = ["gap-1", "gap-2", "gap-1.5", "gap-2.5", "gap-1", "gap-2"] as const;
-const ROW_DURATIONS = [55, 68, 60, 72, 64, 70] as const;
+const ROW_DURATIONS = [42, 52, 45, 54, 48, 53] as const;
 const ROW_OFFSETS = [0, 53, 127, 31, 98, 71] as const;
 
 function shuffleRowDeterministic(row: LandingCarouselPlate[], seed: number) {
