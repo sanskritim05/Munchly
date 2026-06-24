@@ -7,6 +7,7 @@ import { ProfileSettingsButton } from "@/components/ProfileSettingsButton";
 import { ProfileViewTracker } from "@/components/ProfileViewTracker";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { pickBestPlate, voteCount } from "@/lib/leaderboard";
+import { computeProfileAverage, syncProfileAverageIfNeeded } from "@/lib/profile-stats";
 import { isVerifiedProfile } from "@/lib/profile-verified";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -33,15 +34,19 @@ export default async function ProfilePage({
     );
   }
 
-  const avgScore = Number(profile.average_score);
-  const totalPlates = profile.total_plates ?? 0;
-
   const { data: plates } = await supabase
     .from("plates")
     .select("id, image_url, score, dish_name, restaurant_name, hot_count, not_count")
     .eq("user_id", profile.id)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+
+  const avgScore = await syncProfileAverageIfNeeded(
+    profile.id,
+    computeProfileAverage(plates ?? []),
+    Number(profile.average_score)
+  );
+  const totalPlates = profile.total_plates ?? 0;
 
   const best = plates?.length ? pickBestPlate(plates) : null;
   const bestVotes = best ? voteCount(best) : 0;

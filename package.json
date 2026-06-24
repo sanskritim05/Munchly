@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "cleanup:mock": "node scripts/cleanup-mock-data.mjs",
+    "backfill:averages": "node scripts/backfill-profile-averages.mjs",
     "reset:db": "node scripts/reset-database.mjs --confirm"
   },
   "dependencies": {

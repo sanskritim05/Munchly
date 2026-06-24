@@ -1,5 +1,36 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
+type RatedPlate = {
+  score: number | string;
+  hot_count: number;
+  not_count: number;
+};
+
+export function computeProfileAverage(plates: RatedPlate[]) {
+  const rated = plates.filter((plate) => plate.hot_count + plate.not_count > 0);
+  if (rated.length === 0) return 0;
+
+  return (
+    Math.round(
+      (rated.reduce((sum, plate) => sum + Number(plate.score), 0) / rated.length) * 100
+    ) / 100
+  );
+}
+
+export async function syncProfileAverageIfNeeded(
+  userId: string,
+  computedAverage: number,
+  storedAverage: number
+) {
+  if (Math.abs(computedAverage - storedAverage) < 0.005) {
+    return computedAverage;
+  }
+
+  const supabase = createAdminClient();
+  await supabase.from("profiles").update({ average_score: computedAverage }).eq("id", userId);
+  return computedAverage;
+}
+
 export async function recalculateUserAverage(userId: string) {
   const supabase = createAdminClient();
 
@@ -9,14 +40,7 @@ export async function recalculateUserAverage(userId: string) {
     .eq("user_id", userId)
     .eq("is_active", true);
 
-  const rated = (plates ?? []).filter((p) => p.hot_count + p.not_count > 0);
-  const average =
-    rated.length > 0
-      ? Math.round(
-          (rated.reduce((sum, p) => sum + Number(p.score), 0) / rated.length) * 100
-        ) / 100
-      : 0;
-
+  const average = computeProfileAverage(plates ?? []);
   await supabase.from("profiles").update({ average_score: average }).eq("id", userId);
 
   return average;
