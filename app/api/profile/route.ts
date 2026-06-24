@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getUserFromRequest } from "@/lib/auth-server";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
-import {
-  canChangeIdentity,
-  identityChangeError,
-} from "@/lib/profile-identity";
 import { getUsernameError, normalizeUsername, USERNAME_RE } from "@/lib/username";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -32,7 +28,7 @@ export async function PATCH(request: Request) {
 
   const { data: current, error: currentError } = await supabase
     .from("profiles")
-    .select("username, display_name, username_changed_at, display_name_changed_at")
+    .select("username, display_name")
     .eq("id", user.id)
     .single();
 
@@ -41,7 +37,6 @@ export async function PATCH(request: Request) {
   }
 
   const usernameChanging = current.username !== username;
-  const displayNameChanging = (current.display_name ?? "").trim() !== display_name;
 
   if (usernameChanging) {
     const usernameError = getUsernameError(username, {
@@ -56,20 +51,6 @@ export async function PATCH(request: Request) {
       { error: "Username must be 3-20 characters: letters, numbers, underscores" },
       { status: 400 }
     );
-  }
-
-  if (usernameChanging) {
-    const error = identityChangeError("username", current.username_changed_at, current.username);
-    if (error) {
-      return NextResponse.json({ error }, { status: 429 });
-    }
-  }
-
-  if (displayNameChanging) {
-    const error = identityChangeError("name", current.display_name_changed_at, current.username);
-    if (error) {
-      return NextResponse.json({ error }, { status: 429 });
-    }
   }
 
   const { data: existing } = await supabase
@@ -102,9 +83,7 @@ export async function PATCH(request: Request) {
       bio: bio || null,
     })
     .eq("id", user.id)
-    .select(
-      "username, display_name, bio, username_changed_at, display_name_changed_at"
-    )
+    .select("username, display_name, bio")
     .single();
 
   if (error || !profile) {
@@ -121,16 +100,5 @@ export async function PATCH(request: Request) {
   }
   revalidatePath("/leaderboard");
 
-  return NextResponse.json({
-    profile,
-    identity_limits: {
-      username_change_allowed: canChangeIdentity(profile.username_changed_at, profile.username),
-      display_name_change_allowed: canChangeIdentity(
-        profile.display_name_changed_at,
-        profile.username
-      ),
-      username_changed_at: profile.username_changed_at,
-      display_name_changed_at: profile.display_name_changed_at,
-    },
-  });
+  return NextResponse.json({ profile });
 }

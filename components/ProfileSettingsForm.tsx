@@ -9,10 +9,6 @@ import { ThemeSetting } from "@/components/ThemeSetting";
 import { useAuth } from "@/components/AuthProvider";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { BIO_MAX_LENGTH } from "@/lib/profile-limits";
-import {
-  canChangeIdentity,
-  formatIdentityUnlockDate,
-} from "@/lib/profile-identity";
 import { getUsernameError, normalizeUsername, USERNAME_RE } from "@/lib/username";
 
 interface ProfileData {
@@ -20,8 +16,6 @@ interface ProfileData {
   username: string;
   bio: string | null;
   avatar_url: string | null;
-  username_changed_at: string | null;
-  display_name_changed_at: string | null;
 }
 
 export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
@@ -35,14 +29,6 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const canChangeUsername = canChangeIdentity(initial.username_changed_at, initial.username);
-  const canChangeDisplayName = canChangeIdentity(
-    initial.display_name_changed_at,
-    initial.username
-  );
-  const usernameUnlockDate = formatIdentityUnlockDate(initial.username_changed_at);
-  const displayNameUnlockDate = formatIdentityUnlockDate(initial.display_name_changed_at);
 
   function onAvatarChange(newFile: File | null, previewUrl: string | null) {
     if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -72,16 +58,6 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
       }
     } else if (!USERNAME_RE.test(cleanUsername)) {
       setError("Username must be 3-20 characters: letters, numbers, underscores");
-      return;
-    }
-
-    if (!canChangeUsername && cleanUsername !== initial.username) {
-      setError(`You can change your username again on ${usernameUnlockDate}.`);
-      return;
-    }
-
-    if (!canChangeDisplayName && name !== (initial.display_name ?? "").trim()) {
-      setError(`You can change your name again on ${displayNameUnlockDate}.`);
       return;
     }
 
@@ -189,16 +165,8 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
           onChange={(e) => setDisplayName(e.target.value.slice(0, 50))}
           required
           maxLength={50}
-          readOnly={!canChangeDisplayName}
-          className={`w-full rounded-xl border border-border bg-surface px-4 py-3 ${
-            !canChangeDisplayName ? "cursor-not-allowed opacity-70" : ""
-          }`}
+          className="w-full rounded-xl border border-border bg-surface px-4 py-3"
         />
-        {!canChangeDisplayName && displayNameUnlockDate ? (
-          <p className="mt-1 text-xs text-gray-500">
-            You can change your name again on {displayNameUnlockDate}.
-          </p>
-        ) : null}
       </div>
 
       <div>
@@ -211,16 +179,8 @@ export function ProfileSettingsForm({ initial }: { initial: ProfileData }) {
           onChange={(e) => setUsername(e.target.value)}
           required
           maxLength={20}
-          readOnly={!canChangeUsername}
-          className={`w-full rounded-xl border border-border bg-surface px-4 py-3 ${
-            !canChangeUsername ? "cursor-not-allowed opacity-70" : ""
-          }`}
+          className="w-full rounded-xl border border-border bg-surface px-4 py-3"
         />
-        {!canChangeUsername && usernameUnlockDate ? (
-          <p className="mt-1 text-xs text-gray-500">
-            You can change your username again on {usernameUnlockDate}.
-          </p>
-        ) : null}
       </div>
 
       <div>
