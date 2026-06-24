@@ -1,7 +1,7 @@
 import { UNLIMITED_PLATE_USERNAME } from "@/lib/plate-limits";
 import { normalizeUsername } from "@/lib/username";
 
-export const VERIFIED_PLATE_THRESHOLD = 100;
+export const VERIFIED_PLATE_THRESHOLD = 50;
 
 export function isOfficialAccountUsername(username: string | null | undefined) {
   return normalizeUsername(username ?? "") === UNLIMITED_PLATE_USERNAME;
