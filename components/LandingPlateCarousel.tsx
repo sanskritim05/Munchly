@@ -154,7 +154,7 @@ export function LandingPlateCarousel({
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-60">
       <div className="absolute inset-0 flex rotate-[-6deg] scale-[1.2] flex-col gap-1">
         {rows.map((row: LandingCarouselRowConfig, index) => (
           <CarouselRow
