@@ -11,30 +11,54 @@ import {
   type LandingCarouselPlate,
 } from "@/lib/landing-carousel";
 
-function buildDenseRow(plates: LandingCarouselPlate[], minTiles = LANDING_CAROUSEL_MIN_TILES_PER_ROW) {
-  if (plates.length === 0) return [];
-
+function buildUniqueRow(
+  primary: LandingCarouselPlate[],
+  pool: LandingCarouselPlate[],
+  targetCount: number
+) {
+  const seen = new Set<string>();
   const row: LandingCarouselPlate[] = [];
-  for (let index = 0; index < minTiles; index++) {
-    row.push(plates[index % plates.length]);
+
+  const add = (plate: LandingCarouselPlate) => {
+    if (seen.has(plate.image_url)) return;
+    seen.add(plate.image_url);
+    row.push(plate);
+  };
+
+  for (const plate of primary) {
+    add(plate);
+    if (row.length >= targetCount) return row;
+  }
+
+  for (const plate of pool) {
+    if (row.length >= targetCount) break;
+    add(plate);
   }
 
   return row;
 }
 
 function splitRows(plates: LandingCarouselPlate[], rowCount = LANDING_CAROUSEL_ROW_COUNT) {
+  if (plates.length === 0) return [];
+
   const buckets: LandingCarouselPlate[][] = Array.from({ length: rowCount }, () => []);
 
   plates.forEach((plate, index) => {
     buckets[index % rowCount].push(plate);
   });
 
-  return buckets.map((bucket, index) => {
-    const source = bucket.length > 0 ? bucket : plates;
-    const offset = index % Math.max(source.length, 1);
-    const rotated = [...source.slice(offset), ...source.slice(0, offset)];
-    return buildDenseRow(rotated.length > 0 ? rotated : plates);
-  });
+  const targetCount =
+    plates.length >= LANDING_CAROUSEL_MIN_TILES_PER_ROW
+      ? LANDING_CAROUSEL_MIN_TILES_PER_ROW
+      : Math.ceil(plates.length / rowCount);
+
+  return buckets
+    .map((bucket, index) => {
+      const offset = index % Math.max(plates.length, 1);
+      const rotated = [...plates.slice(offset), ...plates.slice(0, offset)];
+      return buildUniqueRow(bucket, rotated, targetCount);
+    })
+    .filter((row) => row.length > 0);
 }
 
 function CarouselRow({

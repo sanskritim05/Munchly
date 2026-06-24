@@ -6,7 +6,7 @@ export interface LandingCarouselPlate {
 }
 
 export const LANDING_CAROUSEL_ROW_COUNT = 6;
-export const LANDING_CAROUSEL_PLATE_LIMIT = 60;
+export const LANDING_CAROUSEL_PLATE_LIMIT = 360;
 export const LANDING_CAROUSEL_MIN_TILES_PER_ROW = 24;
 
 export const LANDING_CAROUSEL_SEED_PLATES: LandingCarouselPlate[] = [
@@ -20,31 +20,18 @@ export const LANDING_CAROUSEL_SEED_PLATES: LandingCarouselPlate[] = [
   { id: "seed-08", image_url: "/landing-carousel/08-pasta.png" },
 ];
 
-function mergeCarouselPlates(
-  dbPlates: LandingCarouselPlate[],
-  limit: number
-): LandingCarouselPlate[] {
+function dedupePlatesByImage(plates: LandingCarouselPlate[], limit: number) {
   const seen = new Set<string>();
-  const merged: LandingCarouselPlate[] = [];
+  const unique: LandingCarouselPlate[] = [];
 
-  for (const plate of dbPlates) {
-    if (seen.has(plate.image_url)) continue;
+  for (const plate of plates) {
+    if (!plate.image_url || seen.has(plate.image_url)) continue;
     seen.add(plate.image_url);
-    merged.push(plate);
-    if (merged.length >= limit) break;
+    unique.push(plate);
+    if (unique.length >= limit) break;
   }
 
-  // Only use bundled photos when there aren't enough user uploads yet.
-  if (merged.length < LANDING_CAROUSEL_MIN_TILES_PER_ROW) {
-    for (const plate of LANDING_CAROUSEL_SEED_PLATES) {
-      if (seen.has(plate.image_url)) continue;
-      seen.add(plate.image_url);
-      merged.push(plate);
-      if (merged.length >= limit) break;
-    }
-  }
-
-  return merged;
+  return unique;
 }
 
 export async function fetchLandingCarouselPlates(
@@ -59,6 +46,14 @@ export async function fetchLandingCarouselPlates(
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  const dbPlates = (data ?? []).filter((plate) => plate.image_url) as LandingCarouselPlate[];
-  return mergeCarouselPlates(dbPlates, limit);
+  const dbPlates = dedupePlatesByImage(
+    (data ?? []).filter((plate) => plate.image_url) as LandingCarouselPlate[],
+    limit
+  );
+
+  if (dbPlates.length > 0) {
+    return dbPlates;
+  }
+
+  return LANDING_CAROUSEL_SEED_PLATES;
 }
