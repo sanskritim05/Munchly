@@ -117,10 +117,12 @@ function SwipeCard({
 export function RateFeed({
   filter = "everyone",
   onFollowingCountChange,
+  onStreakChange,
   onSwitchToExplore,
 }: {
   filter?: FeedFilter;
   onFollowingCountChange?: (count: number) => void;
+  onStreakChange?: (info: { ratedToday: number; streak: number }) => void;
   onSwitchToExplore?: () => void;
 }) {
   const { user, getAccessToken, loading: authLoading } = useAuth();
@@ -128,8 +130,6 @@ export function RateFeed({
   const userId = registered ? user.id : null;
   const [plates, setPlates] = useState<FeedPlate[]>([]);
   const [index, setIndex] = useState(0);
-  const [ratedToday, setRatedToday] = useState(0);
-  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -143,6 +143,13 @@ export function RateFeed({
   const nextScale = useTransform(absX, [0, 240], [0.92, 1]);
   const nextY = useTransform(absX, [0, 240], [16, 0]);
   const nextOpacity = useTransform(absX, [0, 200], [0.86, 1]);
+
+  const publishStreak = useCallback(
+    (ratedToday: number, streak: number) => {
+      onStreakChange?.({ ratedToday, streak });
+    },
+    [onStreakChange]
+  );
 
   const loadFeed = useCallback(async (tokenOverride?: string) => {
     const token = tokenOverride ?? getAccessToken();
@@ -158,22 +165,21 @@ export function RateFeed({
     onFollowingCountChange?.(count);
     if (typeof data.rated_today_count === "number") {
       syncRatedToday(userId, data.rated_today_count);
-      setRatedToday(data.rated_today_count);
+      publishStreak(data.rated_today_count, getStreak(userId).count);
     }
     setIndex(0);
     x.set(0);
     setLoading(false);
     setRefreshing(false);
     return true;
-  }, [filter, getAccessToken, onFollowingCountChange, userId, x]);
+  }, [filter, getAccessToken, onFollowingCountChange, publishStreak, userId, x]);
 
   useEffect(() => {
     async function init() {
       if (authLoading) return;
 
       if (!registered || !userId) {
-        setStreak(0);
-        setRatedToday(0);
+        onStreakChange?.({ ratedToday: 0, streak: 0 });
         setLoading(false);
         return;
       }
@@ -185,13 +191,12 @@ export function RateFeed({
       }
 
       const s = getStreak(userId);
-      setStreak(s.count);
-      setRatedToday(s.ratedToday);
+      publishStreak(s.ratedToday, s.count);
       setLoading(true);
       await loadFeed(token);
     }
     init();
-  }, [authLoading, registered, userId, getAccessToken, loadFeed, filter]);
+  }, [authLoading, registered, userId, getAccessToken, loadFeed, filter, publishStreak, onStreakChange]);
 
   const current = plates[index];
   const next = plates[index + 1];
@@ -213,8 +218,7 @@ export function RateFeed({
 
     const previousStreak = getStreak(userId).count;
     const s = recordRating(userId);
-    setStreak(s.count);
-    setRatedToday(s.ratedToday);
+    publishStreak(s.ratedToday, s.count);
 
     void track("swipe_completed", {
       direction: rating === 1 ? "hot" : "not",
@@ -280,18 +284,6 @@ export function RateFeed({
       </div>
     );
   }
-
-  const streakBadge =
-    registered && !authLoading && !loading ? (
-      <div className="pointer-events-none absolute right-4 top-2 z-40 shrink-0 rounded-full bg-black/60 px-3 py-1 text-xs whitespace-nowrap sm:right-6 sm:text-sm">
-        <span className="inline-flex items-center gap-1.5">
-          <AppIcon kind="flame" size={16} />
-          <span>{ratedToday} rated today</span>
-          <span className="text-gray-400">·</span>
-          <span>{streak > 0 ? `Day ${streak} streak` : "No streak"}</span>
-        </span>
-      </div>
-    ) : null;
 
   let body: ReactNode;
 
@@ -414,7 +406,6 @@ export function RateFeed({
 
   return (
     <div className="relative mx-auto h-full w-full">
-      {streakBadge}
       {body}
     </div>
   );

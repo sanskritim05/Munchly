@@ -6,9 +6,11 @@ import { FeedFilterToggle } from "@/components/FeedFilterToggle";
 import { FeedTabBar } from "@/components/FeedTabBar";
 import { PeopleSearchButton, PeopleSearchOverlay } from "@/components/PeopleSearchOverlay";
 import { RateFeed } from "@/components/RateFeed";
+import { RateStreakBadge } from "@/components/RateStreakBadge";
 import { useAuth } from "@/components/AuthProvider";
 import { track } from "@/lib/analytics";
 import { isRegisteredUser } from "@/lib/auth-user";
+import { getStreak } from "@/lib/streak";
 import {
   FeedFilter,
   FeedTab,
@@ -23,9 +25,11 @@ export function SwipeFeed() {
   const [tab, setTab] = useState<FeedTab>("explore");
   const [filter, setFilter] = useState<FeedFilter>("everyone");
   const [followingCount, setFollowingCount] = useState(0);
+  const [rateStreak, setRateStreak] = useState({ ratedToday: 0, streak: 0 });
   const [searchOpen, setSearchOpen] = useState(false);
   const tracked = useRef(false);
   const registered = isRegisteredUser(user);
+  const userId = registered ? user.id : null;
 
   useEffect(() => {
     if (authLoading) return;
@@ -42,6 +46,16 @@ export function SwipeFeed() {
     setTab(storedTab);
     setFilter(storedFilter);
   }, [authLoading, registered]);
+
+  useEffect(() => {
+    if (!userId) {
+      setRateStreak({ ratedToday: 0, streak: 0 });
+      return;
+    }
+
+    const s = getStreak(userId);
+    setRateStreak({ ratedToday: s.ratedToday, streak: s.count });
+  }, [userId, tab]);
 
   useEffect(() => {
     if (tracked.current) return;
@@ -73,12 +87,18 @@ export function SwipeFeed() {
           <PeopleSearchButton onClick={() => setSearchOpen(true)} />
         </div>
         {registered ? (
-          <div className="mt-2 px-page">
+          <div className="mt-2 flex items-start justify-between gap-3 px-page">
             <FeedFilterToggle
               filter={filter}
               onChange={onFilterChange}
               followingCount={followingCount}
             />
+            {tab === "rate" ? (
+              <RateStreakBadge
+                ratedToday={rateStreak.ratedToday}
+                streak={rateStreak.streak}
+              />
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -97,6 +117,7 @@ export function SwipeFeed() {
           <RateFeed
             filter={filter}
             onFollowingCountChange={setFollowingCount}
+            onStreakChange={setRateStreak}
             onSwitchToExplore={switchToExplore}
           />
         )}
