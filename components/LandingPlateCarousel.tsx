@@ -2,73 +2,27 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import {
-  LANDING_CAROUSEL_MIN_TILES_PER_ROW,
+  buildCarouselRows,
   LANDING_CAROUSEL_PLATE_LIMIT,
-  LANDING_CAROUSEL_ROW_COUNT,
   type LandingCarouselPlate,
+  type LandingCarouselRowConfig,
 } from "@/lib/landing-carousel";
-
-function buildUniqueRow(
-  primary: LandingCarouselPlate[],
-  pool: LandingCarouselPlate[],
-  targetCount: number
-) {
-  const seen = new Set<string>();
-  const row: LandingCarouselPlate[] = [];
-
-  const add = (plate: LandingCarouselPlate) => {
-    if (seen.has(plate.image_url)) return;
-    seen.add(plate.image_url);
-    row.push(plate);
-  };
-
-  for (const plate of primary) {
-    add(plate);
-    if (row.length >= targetCount) return row;
-  }
-
-  for (const plate of pool) {
-    if (row.length >= targetCount) break;
-    add(plate);
-  }
-
-  return row;
-}
-
-function splitRows(plates: LandingCarouselPlate[], rowCount = LANDING_CAROUSEL_ROW_COUNT) {
-  if (plates.length === 0) return [];
-
-  const buckets: LandingCarouselPlate[][] = Array.from({ length: rowCount }, () => []);
-
-  plates.forEach((plate, index) => {
-    buckets[index % rowCount].push(plate);
-  });
-
-  const targetCount =
-    plates.length >= LANDING_CAROUSEL_MIN_TILES_PER_ROW
-      ? LANDING_CAROUSEL_MIN_TILES_PER_ROW
-      : Math.ceil(plates.length / rowCount);
-
-  return buckets
-    .map((bucket, index) => {
-      const offset = index % Math.max(plates.length, 1);
-      const rotated = [...plates.slice(offset), ...plates.slice(0, offset)];
-      return buildUniqueRow(bucket, rotated, targetCount);
-    })
-    .filter((row) => row.length > 0);
-}
 
 function CarouselRow({
   plates,
   reverse = false,
   duration,
+  offsetPx,
+  gapClass,
 }: {
   plates: LandingCarouselPlate[];
   reverse?: boolean;
   duration: number;
+  offsetPx: number;
+  gapClass: string;
 }) {
   const reduceMotion = useReducedMotion();
   const loop = [...plates, ...plates, ...plates];
@@ -76,7 +30,8 @@ function CarouselRow({
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <motion.div
-        className="flex h-full w-max gap-1.5"
+        className={`flex h-full w-max ${gapClass}`}
+        style={{ marginLeft: offsetPx }}
         animate={
           reduceMotion
             ? undefined
@@ -116,6 +71,8 @@ export function LandingPlateCarousel({
   initialPlates: LandingCarouselPlate[];
 }) {
   const [plates, setPlates] = useState(initialPlates);
+
+  const rows = useMemo(() => buildCarouselRows(plates), [plates]);
 
   const refreshPlates = useCallback(async () => {
     try {
@@ -196,18 +153,17 @@ export function LandingPlateCarousel({
     );
   }
 
-  const rows = splitRows(plates);
-  const durations = [55, 68, 60, 72, 64, 70];
-
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-50">
       <div className="absolute inset-0 flex rotate-[-6deg] scale-[1.2] flex-col gap-1">
-        {rows.map((row, index) => (
+        {rows.map((row: LandingCarouselRowConfig, index) => (
           <CarouselRow
             key={index}
-            plates={row}
-            reverse={index % 2 === 1}
-            duration={durations[index] ?? 40}
+            plates={row.plates}
+            reverse={row.reverse}
+            duration={row.duration}
+            offsetPx={row.offsetPx}
+            gapClass={row.gapClass}
           />
         ))}
       </div>
