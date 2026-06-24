@@ -79,9 +79,11 @@ export default async function SharePage({ params }: { params: { id: string } }) 
   const ownerLabel = profilePrimaryLabel({ username, display_name: displayName });
   const score = Number(plate.score);
   const scoreColor = shareScoreColor(score);
+  const verified = isVerifiedProfile({ username, total_plates: profile?.total_plates });
   const tierLabel = getPlateTier(
     Number(profile?.average_score ?? 0),
-    profile?.total_plates ?? 0
+    profile?.total_plates ?? 0,
+    username
   ).name;
   const shareUrl = sharePlateUrl(params.id);
 
@@ -109,7 +111,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
           dishName={plate.dish_name ?? "Mystery Dish"}
           username={username}
           displayName={displayName}
-          verified={isVerifiedProfile({ username, total_plates: profile?.total_plates })}
+          verified={verified}
           tierLabel={tierLabel}
           hotCount={plate.hot_count ?? 0}
           notCount={plate.not_count ?? 0}

@@ -6,11 +6,13 @@ import { getPlateTier } from "@/lib/tiers";
 export function TierBadge({
   averageScore,
   totalPlates,
+  username,
 }: {
   averageScore: number;
   totalPlates: number;
+  username?: string | null;
 }) {
-  const tier = getPlateTier(averageScore, totalPlates);
+  const tier = getPlateTier(averageScore, totalPlates, username);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const descriptionId = useId();

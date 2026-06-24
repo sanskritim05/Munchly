@@ -47,7 +47,8 @@ export default async function OgImage({ params }: { params: { id: string } }) {
   const scoreColor = shareScoreColor(score);
   const tierLabel = getPlateTier(
     Number(profileRow?.average_score ?? 0),
-    profileRow?.total_plates ?? 0
+    profileRow?.total_plates ?? 0,
+    username
   ).name;
   const imageUrl = plate?.image_url ?? null;
 

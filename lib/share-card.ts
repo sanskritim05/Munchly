@@ -8,8 +8,8 @@ export function truncateRoast(text: string | null | undefined, max = 60) {
   return `${trimmed.slice(0, max - 3)}...`;
 }
 
-export function getShareTierLabel(score: number) {
-  return getPlateTier(score, 1).name;
+export function getShareTierLabel(score: number, username?: string | null) {
+  return getPlateTier(score, 1, username).name;
 }
 
 export { shareScoreColor };

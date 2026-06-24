@@ -45,7 +45,11 @@ export function ProfileHeader({
           <p className="mt-0.5 truncate text-sm text-gray-400">@{username}</p>
         ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <TierBadge averageScore={averageScore} totalPlates={totalPlates} />
+          <TierBadge
+            averageScore={averageScore}
+            totalPlates={totalPlates}
+            username={username}
+          />
           {bio ? (
             <>
               <span className="text-gray-500" aria-hidden>

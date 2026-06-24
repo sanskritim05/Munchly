@@ -119,6 +119,7 @@ export function PeopleSearchPanel({
                         <TierBadge
                           averageScore={profile.averageScore}
                           totalPlates={profile.totalPlates}
+                          username={profile.username}
                         />
                       </div>
                     </div>

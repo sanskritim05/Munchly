@@ -1,10 +1,16 @@
+import { isOfficialAccountUsername } from "@/lib/profile-verified";
+
 export interface PlateTier {
   name: string;
   color: string;
   description: string;
 }
 
-export function getPlateTier(averageScore: number, totalPlates: number): PlateTier {
+export function getPlateTier(
+  averageScore: number,
+  totalPlates: number,
+  username?: string | null
+): PlateTier {
   if (totalPlates === 0) {
     return {
       name: "Newcomer",
@@ -13,7 +19,7 @@ export function getPlateTier(averageScore: number, totalPlates: number): PlateTi
     };
   }
 
-  if (averageScore >= 9) {
+  if (averageScore >= 9 && isOfficialAccountUsername(username)) {
     return {
       name: "Elite Foodie",
       color: "#ff4d4d",
