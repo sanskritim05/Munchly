@@ -116,7 +116,7 @@ export function NavBar() {
   const youActive = pathname.startsWith("/profile");
 
   return (
-    <nav className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-[var(--bg)]/95 backdrop-blur-md">
+    <nav className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-black/95 backdrop-blur-md">
       <div className="app-container flex w-full items-center justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-page">
         {TABS.map((tab) => (
           <NavTab

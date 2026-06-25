@@ -147,15 +147,15 @@ export function LandingPlateCarousel({
 
   if (plates.length === 0) {
     return (
-      <div className="pointer-events-none fixed inset-0">
+      <div className="pointer-events-none absolute inset-0">
         <div className="h-full w-full animate-pulse bg-gradient-to-br from-hot/30 via-purple/15 to-black" />
       </div>
     );
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-60">
-      <div className="absolute inset-[-18%] flex rotate-[-6deg] scale-[1.55] flex-col gap-0.5 sm:inset-[-12%] sm:scale-[1.35] md:inset-[-8%] md:scale-[1.2]">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-60">
+      <div className="absolute inset-0 flex rotate-[-6deg] scale-[1.2] flex-col gap-1">
         {rows.map((row: LandingCarouselRowConfig, index) => (
           <CarouselRow
             key={index}
