@@ -345,7 +345,7 @@ export function RateFeed({
     }
   } else {
     body = (
-      <div className="grid h-full min-h-0 touch-none gap-6 px-page pb-8 pt-1 grid-rows-[1fr_auto]">
+      <div className="grid h-full min-h-0 touch-none gap-6 px-page pb-4 pt-1 grid-rows-[1fr_auto]">
         <div className={`relative min-h-0 w-full ${feedCardShellClass}`}>
           <div className={feedRateCardMediaClass}>
             {next ? (

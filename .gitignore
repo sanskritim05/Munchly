@@ -34,3 +34,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/mock-plates/
+
+# pwa (generated at build time)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/swe-worker-*.js
+public/swe-worker-*.js.map
+public/fallback-*.js

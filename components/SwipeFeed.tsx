@@ -96,7 +96,7 @@ export function SwipeFeed() {
   }
 
   return (
-    <div className="app-container grid h-page w-full grid-rows-[auto_1fr] overflow-hidden">
+    <div className="app-container grid h-full min-h-0 w-full grid-rows-[auto_1fr] overflow-hidden">
       <div className="shrink-0 bg-[var(--bg)] px-page py-2">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">

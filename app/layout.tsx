@@ -19,17 +19,25 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Munchly",
   title: "Munchly | Is your food a 10?",
   description: "Munchly. Post it. Rate it. Hot or Not for food photos.",
-  manifest: "/manifest.json?v=9",
+  manifest: "/manifest.json?v=10",
   icons: {
     icon: [
-      { url: "/favicon.ico?v=9", sizes: "any" },
-      { url: "/favicon.png?v=9", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico?v=10", sizes: "any" },
+      { url: "/icons/pwa-192.png?v=10", type: "image/png", sizes: "192x192" },
     ],
-    apple: [{ url: "/apple-icon.png?v=9", type: "image/png", sizes: "180x180" }],
+    apple: [{ url: "/apple-icon.png?v=10", type: "image/png", sizes: "180x180" }],
   },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Munchly",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
