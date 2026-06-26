@@ -24,7 +24,7 @@ export function FeedTabBar({
             key={id}
             type="button"
             onClick={() => onChange(id)}
-            className={`flex-1 rounded-full py-2 text-center text-sm sm:py-2.5 ${
+            className={`flex min-h-11 flex-1 items-center justify-center rounded-full py-2 text-center text-sm sm:py-2.5 ${
               active ? "bg-[#ff3c00] font-bold text-white" : "bg-transparent font-normal text-[#555]"
             }`}
           >

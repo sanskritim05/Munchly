@@ -12,11 +12,13 @@ export function FeedFilterToggle({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex min-h-11 items-center gap-2 text-xs">
         <button
           type="button"
           onClick={() => onChange("everyone")}
-          className={filter === "everyone" ? "font-semibold text-white" : "text-gray-500 hover:text-gray-300"}
+          className={`min-h-11 px-1 ${
+            filter === "everyone" ? "font-semibold text-white" : "text-gray-500 hover:text-gray-300"
+          }`}
         >
           All
         </button>
@@ -26,9 +28,9 @@ export function FeedFilterToggle({
         <button
           type="button"
           onClick={() => onChange("following")}
-          className={
+          className={`min-h-11 px-1 ${
             filter === "following" ? "font-semibold text-white" : "text-gray-500 hover:text-gray-300"
-          }
+          }`}
         >
           Following
         </button>

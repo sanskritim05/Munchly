@@ -100,7 +100,7 @@ function PickCard({
             type="button"
             onClick={onToggleSave}
             disabled={saving}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+            className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold disabled:opacity-50 min-h-11 ${
               saved
                 ? "border-hot/40 bg-hot/10 text-hot"
                 : "border-border text-gray-300 hover:border-hot/40 hover:text-hot"
@@ -114,7 +114,7 @@ function PickCard({
             type="button"
             onClick={onRemove}
             disabled={saving}
-            className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-gray-400 hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+            className="shrink-0 rounded-full border border-border px-3 py-2 text-xs font-semibold text-gray-400 hover:border-red-500/40 hover:text-red-400 disabled:opacity-50 min-h-11"
           >
             {saving ? "..." : "Remove"}
           </button>

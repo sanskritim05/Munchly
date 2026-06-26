@@ -31,7 +31,7 @@ export function RateIntroOverlay({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-page"
+          className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/70 px-page py-safe sm:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

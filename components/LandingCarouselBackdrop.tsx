@@ -13,12 +13,12 @@ export function LandingCarouselBackdrop({
   contentClassName?: string;
 }) {
   return (
-    <div className="min-h-app">
-      <div className="relative flex min-h-app flex-col items-center justify-center overflow-hidden px-page text-center">
-        <LandingPlateCarousel initialPlates={initialPlates} />
-        <div className="pointer-events-none absolute inset-0 bg-black/75" />
+    <div className="relative min-h-app w-full">
+      <LandingPlateCarousel initialPlates={initialPlates} />
+      <div className="pointer-events-none fixed inset-0 bg-black/75" />
 
-        <div className={`relative z-10 ${contentClassName}`}>{children}</div>
+      <div className="relative z-10 flex min-h-app flex-col items-center justify-start px-page py-safe text-center sm:justify-center">
+        <div className={contentClassName}>{children}</div>
       </div>
     </div>
   );

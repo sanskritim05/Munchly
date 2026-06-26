@@ -76,7 +76,7 @@ export function PeopleSearchButton({
       type="button"
       onClick={onClick}
       aria-label="Search people"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full p-2 transition-opacity hover:opacity-80 ${className}`}
+      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80 ${className}`}
     >
       <AppIcon kind="search" size={22} />
     </button>

@@ -13,6 +13,7 @@
   --muted-strong: #6b7280;
   --hot: #ff4d4d;
   --purple: #6366f1;
+  --app-height: 100svh;
   --app-height: 100dvh;
   --nav-height: 3.75rem;
   --feed-tab-height: 5.75rem;
@@ -24,8 +25,8 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --nav-total: calc(var(--nav-height) + var(--safe-bottom));
-  --content-height: calc(var(--app-height) - var(--safe-top));
-  --page-height: calc(var(--content-height) - var(--nav-total));
+  --content-height: var(--app-height);
+  --page-height: calc(var(--content-height) - var(--safe-top) - var(--nav-total));
   --feed-height: calc(var(--page-height) - var(--feed-tab-height));
 }
 
@@ -221,6 +222,11 @@ body::-webkit-scrollbar {
 
   .pt-safe {
     padding-top: max(0.5rem, var(--safe-top));
+  }
+
+  .py-safe {
+    padding-top: max(0.5rem, var(--safe-top));
+    padding-bottom: max(0.5rem, var(--safe-bottom));
   }
 
   .px-page {

@@ -54,15 +54,15 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
 
   return (
     <div className="min-h-page">
-      <div className="relative flex min-h-page flex-col items-center justify-center overflow-hidden px-page pb-8 pt-8 text-center sm:pt-12">
+      <div className="relative flex min-h-page flex-col items-center justify-start overflow-x-hidden px-page pb-8 pt-8 text-center sm:justify-center sm:pt-12">
         <div className="absolute inset-0 opacity-30">
           <div className="animate-pulse bg-gradient-to-br from-hot/40 via-purple/20 to-black" />
         </div>
 
         <div className="relative z-10 w-full max-w-md">
           <AppLogo size={160} priority className="mx-auto" />
-          <h1 className="mt-6 text-5xl font-bold tracking-tight">Is your food a 10?</h1>
-          <p className="mt-4 text-xl text-gray-400">
+          <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-5xl">Is your food a 10?</h1>
+          <p className="mt-4 text-lg text-gray-400 sm:text-xl">
             {isSignIn ? "Sign in to rate plates and post your own." : "Create an account to get started."}
           </p>
 

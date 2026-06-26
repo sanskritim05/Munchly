@@ -8,7 +8,8 @@ import type { LandingCarouselPlate } from "@/lib/landing-carousel";
 export function LandingPage({ plates }: { plates: LandingCarouselPlate[] }) {
   return (
     <LandingCarouselBackdrop initialPlates={plates}>
-      <AppLogo size={220} priority className="mx-auto" />
+      <AppLogo size={180} priority className="mx-auto sm:hidden" />
+      <AppLogo size={220} priority className="mx-auto hidden sm:block" />
       <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">Is your food a 10?</h1>
       <p className="mt-4 text-lg text-gray-400 sm:text-xl">Post it. Rate it. Find out.</p>
       <Link

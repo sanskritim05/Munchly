@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCroppedAvatarBlob, getCroppedPlateBlob } from "@/lib/crop-image";
 
-const VIEWPORT = 280;
+const MAX_VIEWPORT = 280;
 
 export function ImageCropModal({
   imageSrc,
@@ -22,17 +22,28 @@ export function ImageCropModal({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ w: 0, h: 0 });
   const [saving, setSaving] = useState(false);
+  const [viewportSize, setViewportSize] = useState(MAX_VIEWPORT);
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(
     null
   );
 
+  useEffect(() => {
+    function updateViewport() {
+      setViewportSize(Math.min(MAX_VIEWPORT, Math.floor(window.innerWidth * 0.85)));
+    }
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   const baseScale =
-    imageSize.w > 0 ? Math.max(VIEWPORT / imageSize.w, VIEWPORT / imageSize.h) : 1;
+    imageSize.w > 0 ? Math.max(viewportSize / imageSize.w, viewportSize / imageSize.h) : 1;
   const scale = baseScale * zoom;
   const imgW = imageSize.w * scale;
   const imgH = imageSize.h * scale;
-  const imgX = (VIEWPORT - imgW) / 2 + position.x;
-  const imgY = (VIEWPORT - imgH) / 2 + position.y;
+  const imgX = (viewportSize - imgW) / 2 + position.x;
+  const imgY = (viewportSize - imgH) / 2 + position.y;
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -65,8 +76,8 @@ export function ImageCropModal({
     try {
       const blob =
         shape === "circle"
-          ? await getCroppedAvatarBlob(imageSrc, position, zoom, VIEWPORT)
-          : await getCroppedPlateBlob(imageSrc, position, zoom, VIEWPORT);
+          ? await getCroppedAvatarBlob(imageSrc, position, zoom, viewportSize)
+          : await getCroppedPlateBlob(imageSrc, position, zoom, viewportSize);
       onConfirm(new File([blob], filename, { type: "image/jpeg" }));
     } finally {
       setSaving(false);
@@ -84,7 +95,7 @@ export function ImageCropModal({
 
         <div
           className={`relative mx-auto mt-5 touch-none overflow-hidden bg-black ${viewportClass}`}
-          style={{ width: VIEWPORT, height: VIEWPORT }}
+          style={{ width: viewportSize, height: viewportSize }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
