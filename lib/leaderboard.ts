@@ -121,6 +121,15 @@ async function fetchPlatesInLookback(supabase: SupabaseClient, lookbackDays: num
   return plates ?? [];
 }
 
+async function fetchAllActivePlates(supabase: SupabaseClient) {
+  const { data: plates } = await supabase
+    .from("plates")
+    .select("id, score, hot_count, not_count, image_url, dish_name, restaurant_name, is_active, profiles(username, display_name, total_plates)")
+    .eq("is_active", true);
+
+  return plates ?? [];
+}
+
 export async function fetchHottestPlate(
   supabase: SupabaseClient,
   lookbackDays: number
@@ -209,6 +218,19 @@ export async function fetchCachedWeeklyLeaderboard(
 
 export async function fetchLiveWeeklyLeaderboard(supabase: SupabaseClient) {
   const plates = await fetchPlatesInLookback(supabase, LEADERBOARD_LOOKBACK_DAYS);
+  const ranked = rankEligiblePlates(plates);
+  const entries: LeaderboardEntry[] = [];
+
+  ranked.forEach((plate, index) => {
+    const entry = toEntry(plate, index + 1);
+    if (entry) entries.push(entry);
+  });
+
+  return entries;
+}
+
+export async function fetchAllTimeLeaderboard(supabase: SupabaseClient) {
+  const plates = await fetchAllActivePlates(supabase);
   const ranked = rankEligiblePlates(plates);
   const entries: LeaderboardEntry[] = [];
 

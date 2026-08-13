@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import {
   buildCarouselRows,
   LANDING_CAROUSEL_PLATE_LIMIT,
+  LANDING_CAROUSEL_SEED_PLATES,
   type LandingCarouselPlate,
   type LandingCarouselRowConfig,
 } from "@/lib/landing-carousel";
@@ -65,12 +66,16 @@ function CarouselRow({
   );
 }
 
+function withCarouselFallback(plates: LandingCarouselPlate[]) {
+  return plates.length > 0 ? plates : LANDING_CAROUSEL_SEED_PLATES;
+}
+
 export function LandingPlateCarousel({
   initialPlates,
 }: {
   initialPlates: LandingCarouselPlate[];
 }) {
-  const [plates, setPlates] = useState(initialPlates);
+  const [plates, setPlates] = useState(() => withCarouselFallback(initialPlates));
 
   const rows = useMemo(() => buildCarouselRows(plates), [plates]);
 
@@ -89,7 +94,7 @@ export function LandingPlateCarousel({
   }, []);
 
   useEffect(() => {
-    setPlates(initialPlates);
+    setPlates(withCarouselFallback(initialPlates));
   }, [initialPlates]);
 
   useEffect(() => {
@@ -144,14 +149,6 @@ export function LandingPlateCarousel({
       void supabase.removeChannel(channel);
     };
   }, [refreshPlates]);
-
-  if (plates.length === 0) {
-    return (
-      <div className="pointer-events-none fixed inset-0">
-        <div className="h-full w-full animate-pulse bg-gradient-to-br from-hot/30 via-purple/15 to-black" />
-      </div>
-    );
-  }
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-60">

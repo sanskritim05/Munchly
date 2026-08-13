@@ -51,11 +51,8 @@ export async function fetchLandingCarouselPlates(
     limit
   );
 
-  if (dbPlates.length > 0) {
-    return dbPlates;
-  }
-
-  return LANDING_CAROUSEL_SEED_PLATES;
+  // Always keep seed plates so the backdrop never renders empty or sparse.
+  return dedupePlatesByImage([...dbPlates, ...LANDING_CAROUSEL_SEED_PLATES], limit);
 }
 
 export interface LandingCarouselRowConfig {
@@ -86,12 +83,12 @@ export function buildCarouselRows(
   plates: LandingCarouselPlate[],
   rowCount = LANDING_CAROUSEL_ROW_COUNT
 ): LandingCarouselRowConfig[] {
-  if (plates.length === 0) return [];
+  const source = plates.length > 0 ? plates : LANDING_CAROUSEL_SEED_PLATES;
 
   const targetCount =
-    plates.length >= LANDING_CAROUSEL_MIN_TILES_PER_ROW
+    source.length >= LANDING_CAROUSEL_MIN_TILES_PER_ROW
       ? LANDING_CAROUSEL_MIN_TILES_PER_ROW
-      : Math.max(1, Math.ceil(plates.length / rowCount));
+      : Math.max(LANDING_CAROUSEL_MIN_TILES_PER_ROW, source.length * 3);
 
   const rows: LandingCarouselPlate[][] = Array.from({ length: rowCount }, () => []);
   const usedInRow = Array.from({ length: rowCount }, () => new Set<string>());
@@ -105,8 +102,10 @@ export function buildCarouselRows(
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
       if (rows[rowIndex].length >= targetCount) continue;
 
-      for (let attempt = 0; attempt < plates.length; attempt++) {
-        const plate = plates[(cursor + attempt) % plates.length];
+      let placed = false;
+
+      for (let attempt = 0; attempt < source.length; attempt++) {
+        const plate = source[(cursor + attempt) % source.length];
         const url = plate.image_url;
 
         if (usedInRow[rowIndex].has(url)) continue;
@@ -115,9 +114,19 @@ export function buildCarouselRows(
 
         rows[rowIndex].push(plate);
         usedInRow[rowIndex].add(url);
-        cursor = (cursor + attempt + 1) % plates.length;
+        cursor = (cursor + attempt + 1) % source.length;
+        placed = true;
         placedAny = true;
         break;
+      }
+
+      // Prefer unique neighbors, but always fill tiles so images never go blank.
+      if (!placed) {
+        const plate = source[cursor % source.length];
+        rows[rowIndex].push(plate);
+        usedInRow[rowIndex].add(plate.image_url);
+        cursor = (cursor + 1) % source.length;
+        placedAny = true;
       }
     }
 
@@ -125,13 +134,11 @@ export function buildCarouselRows(
     if (rows.every((row) => row.length >= targetCount)) break;
   }
 
-  return rows
-    .map((row, index) => ({
-      plates: shuffleRowDeterministic(row, index * 17 + 3),
-      offsetPx: ROW_OFFSETS[index % ROW_OFFSETS.length] ?? index * 41,
-      gapClass: ROW_GAPS[index % ROW_GAPS.length] ?? "gap-1.5",
-      duration: ROW_DURATIONS[index % ROW_DURATIONS.length] ?? 60,
-      reverse: index % 2 === 1,
-    }))
-    .filter((row) => row.plates.length > 0);
+  return rows.map((row, index) => ({
+    plates: shuffleRowDeterministic(row, index * 17 + 3),
+    offsetPx: ROW_OFFSETS[index % ROW_OFFSETS.length] ?? index * 41,
+    gapClass: ROW_GAPS[index % ROW_GAPS.length] ?? "gap-1.5",
+    duration: ROW_DURATIONS[index % ROW_DURATIONS.length] ?? 60,
+    reverse: index % 2 === 1,
+  }));
 }
