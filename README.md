@@ -2,7 +2,7 @@
 
 **Is your food a 10?**
 
-Munchly is Hot or Not for food photos. Snap a plate, share it, and find out how people really rate your meal — on a simple 0–10 score built from **Hot** and **Not** votes.
+Munchly is Hot or Not for food photos. Snap a plate, share it, and find out how people really rate your meal, on a simple 0–10 score built from **Hot** and **Not** votes.
 
 Post it. Rate it. Find out.
 
@@ -51,41 +51,6 @@ Munchly is a Progressive Web App — add it to your home screen and use it like 
 
 ---
 
-## Setup
-
-1. **Install**
-
-   ```bash
-   npm install
-   ```
-
-2. **Supabase**
-
-   - Create a project at [supabase.com](https://supabase.com)
-   - Run `supabase/schema.sql` in the SQL Editor
-   - Run remaining migrations in `supabase/` as needed
-   - Enable **Anonymous sign-ins**: Authentication → Providers → Anonymous
-   - Create a **public** storage bucket named `plates`
-
-3. **Environment**
-
-   Copy `.env.example` → `.env` and fill in:
-
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `GROQ_API_KEY` ([console.groq.com](https://console.groq.com) — taste picks only)
-
-4. **Run**
-
-   ```bash
-   npm run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000)
-
----
-
 ## Main routes
 
 | Route | What it’s for |
@@ -99,9 +64,3 @@ Munchly is a Progressive Web App — add it to your home screen and use it like 
 | `/picks` | Personalized taste picks |
 | `/profile/[username]` | Someone’s plates and stats |
 | `/share/[id]` | Shareable score card |
-
----
-
-## Deploy
-
-Push to GitHub and import on Vercel. Add the same env vars. The weekly leaderboard refresh can run via the configured cron in `vercel.json`.
